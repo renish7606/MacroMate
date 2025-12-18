@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}MacroMate — Food History{% endblock %}
+
+{% block content %}
+
+<section class="card history-card">
+
+  <!-- Header -->
+  <div class="history-header">
+    <h2>Today's Food Log</h2>
+    <p class="date-display">{{ today_date|date:"F d, Y" }}</p>
+  </div>
+
+  <!-- Calories Summary -->
+  <div class="calories-summary">
+    <div class="total-calories">
+      <h3>Total Calories Today</h3>
+      <div class="calorie-number">
+        {{ total_calories }} <span class="kcal-unit">kcal</span>
+      </div>
+    </div>
+
+    <div class="meal-count">
+      <p class="muted">
+        {{ meal_count }} meal{{ meal_count|pluralize }} logged
+      </p>
+    </div>
+  </div>
+
+  <!-- Meals -->
+  <div class="meals-section">
+    <h4>Meals & Snacks</h4>
+
+    {% if todays_meals %}
+      <div class="meals-list">
+        {% for meal in todays_meals %}
+          <div class="meal-item">
+            <div class="meal-info">
+              <h5 class="meal-name">{{ meal.food_name }}</h5>
+              <p class="meal-time">{{ meal.get_time_display }}</p>
+            </div>
+            <div class="meal-calories">
+              <span class="calories">{{ meal.calories }}</span>
+              <span class="kcal-small">kcal</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">🍽️</div>
+        <h4>No meals logged today</h4>
+        <p class="muted">Start by analyzing your first food item!</p>
+        <a href="/" class="btn-primary">Analyze Food</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Quick Stats -->
+  {% if todays_meals %}
+    <div class="quick-stats">
+      <h4>Quick Stats</h4>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-number">{{ meal_count }}</span>
+          <span class="stat-label">Meals</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ total_calories }}</span>
+          <span class="stat-label">Calories</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">
+            {% widthratio total_calories meal_count 1 %}
+          </span>
+          <span class="stat-label">Avg / Meal</span>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Actions -->
+  <div class="actions">
+    <a href="/" class="btn-secondary">Analyze New Food</a>
+
+    {% if todays_meals %}
+      <button class="btn-primary" onclick="exportHistory()">
+        Export Today's Log
+      </button>
+    {% endif %}
+  </div>
+
+  <footer class="foot">
+    Meal history is stored locally and resets daily for a fresh start.
+  </footer>
+
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function exportHistory() {
+    const meals = [
+      {% for meal in todays_meals %}
+      {
+        food: "{{ meal.food_name|escapejs }}",
+        calories: {{ meal.calories }},
+        time: "{{ meal.get_time_display|escapejs }}"
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    const exportData = {
+      date: "{{ today_date|date:'Y-m-d' }}",
+      totalCalories: {{ total_calories|default:0 }},
+      mealCount: {{ meal_count|default:0 }},
+      meals: meals
+    };
+
+    const blob = new Blob(
+      [JSON.stringify(exportData, null, 2)],
+      { type: "application/json" }
+    );
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "food_history_{{ today_date|date:'Y-m-d' }}.json";
+    a.click();
+  }
+
+  setInterval(() => {
+    if (window.location.pathname === '/history/') {
+      window.location.reload();
+    }
+  }, 30000);
+</script>
+{% endblock %}

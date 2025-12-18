@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>
+    {% block head_title %}
+      MacroMate — Personal Calorie Tracking
+    {% endblock %}
+  </title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="{% block body_class %}{% endblock %}">
+
+  <!-- ================= HEADER ================= -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <h1>MacroMate</h1>
+        <p class="tagline">Personal calorie tracking</p>
+      </div>
+  
+      <nav class="nav">
+        <a href="/" class="nav-link">Analyze Food</a>
+        <a href="/history/" class="nav-link">Food History</a>
+  
+        {% if request.user.is_authenticated %}
+          <span class="nav-user">Hi, {{ request.user.username }}</span>
+          <a href="{% url 'account_logout' %}" class="nav-link">Logout</a>
+        {% else %}
+          <a href="{% url 'account_login' %}" class="nav-link">Login</a>
+          <a href="{% url 'account_signup' %}" class="nav-link">Sign up</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main-content">
+    {% block content %}
+    {% endblock %}
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="site-footer">
+    <div class="footer-container">
+
+      <div class="footer-left">
+        <h3>MacroMate</h3>
+        <p>Personal calorie tracking made simple.</p>
+      </div>
+
+      <div class="footer-center">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/history/">Food History</a></li>
+          <li><a href="{% url 'account_login' %}">Login</a></li>
+          <li><a href="{% url 'account_signup' %}">Sign Up</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-right">
+        <p>© <span id="year"></span> MacroMate</p>
+        <p class="small">All rights reserved.</p>
+      </div>
+
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+
+  {% block extra_js %}{% endblock %}
+
+</body>
+</html>

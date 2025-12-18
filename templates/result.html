@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}Result — MacroMate{% endblock %}
+
+{% block content %}
+
+<section class="card result-card">
+
+  <!-- Back -->
+  <a href="{% url 'reset_analysis' %}" class="back-link">← Analyze another</a>
+
+  <div class="result-grid">
+
+    <!-- IMAGE -->
+    <div class="image-wrap">
+      {% if image %}
+        <img src="{{ image }}" alt="Uploaded food image" class="food-img">
+      {% else %}
+        <p class="muted">No image available</p>
+      {% endif %}
+    </div>
+
+    <!-- RESULT BODY -->
+    <div class="result-body">
+
+      <!-- FOOD NAME -->
+      <h2 class="result-title">{{ food }}</h2>
+
+      <!-- CONFIDENCE -->
+      <p class="confidence">
+        Model confidence: <strong>{{ confidence }}%</strong>
+      </p>
+
+      {% if needs_confirmation %}
+        <!-- CONFIRMATION BOX -->
+        <div class="confirm-box">
+          <p class="warning">⚠️ We may be wrong. Please confirm the food.</p>
+
+          <input
+            type="text"
+            id="food-search"
+            placeholder="Type food name (e.g. apple pie)"
+            onkeyup="searchFood(this.value)"
+          >
+
+          <div id="food-results" class="food-results"></div>
+        </div>
+      {% else %}
+        <div class="confidence-good">
+          ✓ High confidence prediction
+        </div>
+      {% endif %}
+
+      <!-- CALORIES -->
+      {% if calories %}
+      <div class="calorie-card">
+        <p class="muted">Estimated calories</p>
+        <p class="cal-num">{{ calories }} <span class="kcal">kcal</span></p>
+      </div>
+      {% endif %}
+
+      <!-- RELATED FOODS -->
+      <div class="topk">
+        <h4>Related foods</h4>
+        <ul>
+          {% if related %}
+            {% for item in related %}
+              <li>{{ item }}</li>
+            {% endfor %}
+          {% else %}
+            <li>No related foods</li>
+          {% endif %}
+        </ul>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="actions">
+        <a href="{% url 'reset_analysis' %}" class="btn-secondary">Try another image</a>
+
+        <button class="btn-primary" onclick="saveMeal()">
+          Save to history
+        </button>
+
+        <button class="btn-primary" onclick="downloadResult()">
+          Download Report
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="foot">
+    Results may vary depending on image quality and cuisine.
+  </footer>
+
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSV_FOODS = {{ csv_foods|safe }};
+
+function searchFood(query) {
+  const results = document.getElementById("food-results");
+  results.innerHTML = "";
+
+  if (query.length < 2) return;
+
+  const matches = CSV_FOODS.filter(f =>
+    f.toLowerCase().includes(query.toLowerCase())
+  ).slice(0, 8);
+
+  matches.forEach(food => {
+    const btn = document.createElement("button");
+    btn.textContent = food;
+    btn.className = "food-option";
+    btn.onclick = () => confirmFood(food);
+    results.appendChild(btn);
+  });
+}
+
+function confirmFood(food) {
+  fetch("/api/confirm-food/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ food })
+  })
+  .then(() => location.reload());
+}
+
+function downloadResult() {
+  const data = {
+    food: "{{ food }}",
+    calories: "{{ calories }} kcal",
+    confidence: "{{ confidence }}%"
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(data, null, 2)],
+    { type: "application/json" }
+  );
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "macro_mate_result.json";
+  a.click();
+}
+
+function saveMeal() {
+  const formData = new FormData();
+  formData.append("food", "{{ food }}");
+  formData.append("calories", "{{ calories }}");
+  formData.append("image", "{{ image }}");
+
+  fetch("/save-history/", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert("Meal saved");
+    }
+  });
+}
+
+</script>
+{% endblock %}

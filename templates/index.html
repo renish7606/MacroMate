@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}MacroMate — Calorie Detector{% endblock %}
+
+{% block content %}
+
+<main class="page-center">
+
+  <!-- Upload Card -->
+  <section class="card upload-card">
+
+    <div class="brand">
+      <h1>MacroMate</h1>
+      <p class="tag">Quick food recognition & calorie estimate</p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="upload-form">
+      {% csrf_token %}
+
+      <!-- File Upload -->
+      <label class="file-drop" for="image-input">
+        <input
+          id="image-input"
+          type="file"
+          name="image"
+          accept="image/*"
+          required
+          hidden
+        />
+        <div class="drop-inner">
+          <svg xmlns="http://www.w3.org/2000/svg" class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 10l5-5 5 5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 5v12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <strong>Choose a photo</strong>
+          <span class="muted">or drag & drop here — JPG, PNG, JPEG</span>
+        </div>
+      </label>
+
+      <!-- Serving Control -->
+      <div class="controls">
+        <label class="range-label" for="serving">
+          Serving size: <output id="servingOut">1.0</output> ×
+        </label>
+        <input
+          type="range"
+          name="serving_factor"
+          id="serving"
+          min="0.25"
+          max="3"
+          step="0.25"
+          value="1"
+        />
+      </div>
+
+      <button type="submit" class="btn-primary">
+        Analyze Image
+      </button>
+
+      <p class="hint">
+        Tip: include a common object (fork, coin) for better portion estimation.
+      </p>
+    </form>
+
+  </section>
+
+  <!-- Info -->
+  <aside class="info-card">
+    <h3>How it works</h3>
+    <ol>
+      <li>Upload a photo of your meal</li>
+      <li>AI predicts the food label</li>
+      <li>Calories are estimated per serving</li>
+    </ol>
+    <p class="muted small">
+      If prediction looks wrong, try a clearer image.
+    </p>
+  </aside>
+
+</main>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const serving = document.getElementById('serving');
+  const servingOut = document.getElementById('servingOut');
+
+  if (serving && servingOut) {
+    servingOut.textContent = serving.value;
+    serving.addEventListener('input', e => {
+      servingOut.textContent = e.target.value;
+    });
+  }
+
+  const drop = document.querySelector('.file-drop');
+
+  ['dragenter', 'dragover'].forEach(evt => {
+    drop.addEventListener(evt, e => {
+      e.preventDefault();
+      drop.classList.add('drag');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(evt => {
+    drop.addEventListener(evt, e => {
+      e.preventDefault();
+      drop.classList.remove('drag');
+    });
+  });
+
+  drop.addEventListener('drop', e => {
+    const input = document.getElementById('image-input');
+    if (e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+    }
+  });
+</script>
+{% endblock %}

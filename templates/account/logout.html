@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block head_title %}Logout — MacroMate{% endblock %}
+
+{% block content %}
+<section class="card auth-card">
+
+  <h2>Sign out</h2>
+  <p class="muted">Are you sure you want to sign out?</p>
+
+  <form method="post" action="{% url 'account_logout' %}">
+    {% csrf_token %}
+
+    {% if redirect_field_value %}
+      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+    {% endif %}
+
+    <button type="submit" class="btn-primary">
+      Yes, sign me out
+    </button>
+  </form>
+
+  <a href="/" class="btn-secondary center">
+    Cancel
+  </a>
+
+</section>
+{% endblock %}

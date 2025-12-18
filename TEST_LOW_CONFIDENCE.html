@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Food Correction - Test Demo</title>
+    <style>
+        body { 
+            font-family: 'Inter', Arial, sans-serif; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background: linear-gradient(180deg,#0f172a 0%, #071032 100%);
+            color: #e6eef8;
+            min-height: 100vh;
+        }
+        .demo-container { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 30px; 
+            margin: 20px 0; 
+        }
+        .demo-card { 
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 20px; 
+            box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6);
+        }
+        .warning { 
+            background: rgba(255, 193, 7, 0.1); 
+            border: 1px solid rgba(255, 193, 7, 0.3); 
+            padding: 12px; 
+            border-radius: 8px; 
+            color: #ffc107; 
+            margin: 12px 0;
+        }
+        .success { 
+            background: rgba(40, 167, 69, 0.1); 
+            border: 1px solid rgba(40, 167, 69, 0.3); 
+            padding: 12px; 
+            border-radius: 8px; 
+            color: #28a745; 
+            margin: 12px 0;
+        }
+        .confidence-good {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+            color: #28a745;
+        }
+        .btn { 
+            padding: 10px 16px; 
+            margin: 5px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .btn-confirm { 
+            background: rgba(40, 167, 69, 0.2); 
+            color: #28a745; 
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+        .btn-select { 
+            background: rgba(220, 53, 69, 0.2); 
+            color: #dc3545; 
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        .food-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin: 12px 0;
+        }
+        .food-option { 
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            text-align: center;
+            color: #e6eef8;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        .food-option:hover { 
+            background: rgba(255, 255, 255, 0.08); 
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            color: #e6eef8;
+            margin: 10px 0;
+        }
+        .search-input::placeholder {
+            color: #98a0b3;
+        }
+        .calories {
+            font-size: 24px;
+            font-weight: 600;
+            color: #e6eef8;
+            margin: 10px 0;
+        }
+        .instructions {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            color: #3b82f6;
+        }
+        h1, h2, h3 { color: #e6eef8; }
+        .muted { color: #98a0b3; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Manual Food Correction - Test Demo</h1>
+    
+    <div class="instructions">
+        <h3>📋 How to Test:</h3>
+        <p><strong>Method 1:</strong> Upload any image with filename containing "test" (e.g., "test-pizza.jpg") to force low confidence</p>
+        <p><strong>Method 2:</strong> Use the interactive demo below to see how the correction UI works</p>
+        <p><strong>Live App:</strong> <a href="http://127.0.0.1:8000" target="_blank" style="color: #3b82f6;">Open MacroMate App</a></p>
+    </div>
+
+    <div class="demo-container">
+        <!-- HIGH CONFIDENCE SCENARIO -->
+        <div class="demo-card">
+            <h2>✅ High Confidence (>30%)</h2>
+            <h3>Detected Food: Pizza</h3>
+            <p><strong>Model confidence: 85%</strong></p>
+            <div class="confidence-good">✓ High confidence prediction</div>
+            <div class="calories">266 kcal</div>
+            <p class="muted">Related foods: Garlic Bread, Bruschetta, Calzone</p>
+        </div>
+
+        <!-- LOW CONFIDENCE SCENARIO -->
+        <div class="demo-card">
+            <h2>⚠️ Low Confidence (<30%)</h2>
+            <h3 id="detected-food">Detected Food: Chocolate Mousse</h3>
+            <p><strong>Model confidence: 25%</strong></p>
+            <div class="warning" id="warning-msg">⚠️ Low confidence prediction. Please confirm the food below.</div>
+            
+            <div id="correction-section">
+                <h4>Is this correct?</h4>
+                <button class="btn btn-confirm" onclick="confirmFood()">✓ Yes, this is correct</button>
+                <button class="btn btn-select" onclick="showOptions()">✗ No, select correct food</button>
+                
+                <div id="food-options" style="display: none; margin-top: 15px;">
+                    <h5>Select the correct food:</h5>
+                    <div class="food-options">
+                        <div class="food-option" onclick="selectFood('pizza', 266)">Pizza</div>
+                        <div class="food-option" onclick="selectFood('hamburger', 295)">Hamburger</div>
+                        <div class="food-option" onclick="selectFood('sushi', 130)">Sushi</div>
+                        <div class="food-option" onclick="selectFood('pasta', 151)">Pasta</div>
+                        <div class="food-option" onclick="selectFood('salad', 100)">Salad</div>
+                        <div class="food-option" onclick="selectFood('sandwich', 250)">Sandwich</div>
+                        <div class="food-option" onclick="selectFood('ice cream', 207)">Ice Cream</div>
+                        <div class="food-option" onclick="selectFood('french fries', 365)">French Fries</div>
+                    </div>
+                    
+                    <input type="text" class="search-input" placeholder="Or search for other foods..." 
+                           onkeyup="searchDemo(this.value)">
+                    <div id="search-results"></div>
+                </div>
+            </div>
+            
+            <div class="calories" id="calories-display">168 kcal</div>
+            <p class="muted" id="related-foods">Related foods: Tiramisu, Cheesecake, Pudding</p>
+        </div>
+    </div>
+
+    <div class="demo-card">
+        <h2>🔧 Testing Instructions</h2>
+        <ol>
+            <li><strong>Test Low Confidence:</strong> Upload any image with "test" in filename (e.g., "test-food.jpg")</li>
+            <li><strong>See Warning:</strong> You'll see "⚠️ Low confidence prediction" message</li>
+            <li><strong>Try Correction:</strong> Click "✗ No, select correct food" to see options</li>
+            <li><strong>Select Food:</strong> Choose from 8 suggestions or search for others</li>
+            <li><strong>See Update:</strong> Food name, calories, and related foods update instantly</li>
+            <li><strong>Confirmation:</strong> See "✓ Food corrected by user" message</li>
+        </ol>
+        
+        <h3>🎯 Expected Behavior:</h3>
+        <ul>
+            <li>Confidence < 30% → Shows correction UI</li>
+            <li>Confidence ≥ 30% → Shows "✓ High confidence prediction"</li>
+            <li>AJAX updates without page reload</li>
+            <li>Real-time search through 100+ foods</li>
+            <li>Visual feedback for all actions</li>
+        </ul>
+    </div>
+
+    <script>
+        function confirmFood() {
+            document.getElementById('warning-msg').innerHTML = '✓ Food confirmed by user';
+            document.getElementById('warning-msg').className = 'success';
+            document.getElementById('correction-section').style.display = 'none';
+        }
+
+        function showOptions() {
+            document.getElementById('food-options').style.display = 'block';
+        }
+
+        function selectFood(food, calories) {
+            // Update the display
+            document.getElementById('detected-food').textContent = `Corrected Food: ${food.charAt(0).toUpperCase() + food.slice(1)}`;
+            document.getElementById('calories-display').textContent = `${calories} kcal`;
+            document.getElementById('warning-msg').innerHTML = '✓ Food corrected by user';
+            document.getElementById('warning-msg').className = 'success';
+            document.getElementById('correction-section').style.display = 'none';
+            
+            // Update related foods based on selection
+            const relatedFoods = {
+                'pizza': 'Garlic Bread, Bruschetta, Calzone',
+                'hamburger': 'Cheeseburger, Hot Dog, French Fries',
+                'sushi': 'Sashimi, Miso Soup, Gyoza',
+                'pasta': 'Spaghetti, Lasagna, Ravioli',
+                'salad': 'Caesar Salad, Greek Salad, Caprese',
+                'sandwich': 'Club Sandwich, Grilled Cheese, BLT',
+                'ice cream': 'Frozen Yogurt, Sorbet, Gelato',
+                'french fries': 'Onion Rings, Chicken Wings, Nachos'
+            };
+            
+            document.getElementById('related-foods').textContent = 
+                `Related foods: ${relatedFoods[food] || 'Various options'}`;
+        }
+
+        function searchDemo(query) {
+            const foods = [
+                {name: 'Apple Pie', calories: 237},
+                {name: 'Baklava', calories: 429},
+                {name: 'Caesar Salad', calories: 158},
+                {name: 'Donuts', calories: 452},
+                {name: 'French Toast', calories: 166},
+                {name: 'Garlic Bread', calories: 350},
+                {name: 'Hot Dog', calories: 290},
+                {name: 'Lasagna', calories: 135}
+            ];
+            
+            const results = foods.filter(food => 
+                food.name.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            const resultsDiv = document.getElementById('search-results');
+            resultsDiv.innerHTML = '';
+            
+            if (query.length > 1 && results.length > 0) {
+                results.slice(0, 5).forEach(food => {
+                    const div = document.createElement('div');
+                    div.className = 'food-option';
+                    div.textContent = `${food.name} (${food.calories} cal)`;
+                    div.onclick = () => selectFood(food.name.toLowerCase(), food.calories);
+                    resultsDiv.appendChild(div);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

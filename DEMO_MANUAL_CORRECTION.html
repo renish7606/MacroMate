@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Food Correction Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .demo-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; color: #856404; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; padding: 10px; border-radius: 5px; color: #155724; }
+        .btn { padding: 10px 15px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-confirm { background: #28a745; color: white; }
+        .btn-select { background: #dc3545; color: white; }
+        .food-option { background: #f8f9fa; border: 1px solid #dee2e6; margin: 5px; padding: 8px; border-radius: 4px; cursor: pointer; }
+        .food-option:hover { background: #e9ecef; }
+        input[type="text"] { width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🍕 Manual Food Correction Feature Demo</h1>
+    
+    <div class="demo-section">
+        <h2>Scenario 1: High Confidence Prediction (>30%)</h2>
+        <h3>Detected Food: Pizza</h3>
+        <p><strong>Model confidence: 85%</strong></p>
+        <div class="success">✓ High confidence prediction</div>
+        <p><strong>Estimated calories:</strong> 266 kcal</p>
+        <p><strong>Related foods:</strong> Garlic Bread, Bruschetta, Calzone, Flatbread</p>
+    </div>
+
+    <div class="demo-section">
+        <h2>Scenario 2: Low Confidence Prediction (<30%)</h2>
+        <h3>Detected Food: Chocolate Mousse</h3>
+        <p><strong>Model confidence: 25%</strong></p>
+        <div class="warning">⚠️ Low confidence prediction. Please confirm the food below.</div>
+        
+        <h4>Is this correct?</h4>
+        <button class="btn btn-confirm" onclick="confirmFood()">✓ Yes, this is correct</button>
+        <button class="btn btn-select" onclick="showOptions()">✗ No, select correct food</button>
+        
+        <div id="food-options" style="display: none; margin-top: 15px;">
+            <h5>Select the correct food:</h5>
+            <div class="food-option" onclick="selectFood('pizza')">Pizza</div>
+            <div class="food-option" onclick="selectFood('hamburger')">Hamburger</div>
+            <div class="food-option" onclick="selectFood('sushi')">Sushi</div>
+            <div class="food-option" onclick="selectFood('pasta')">Pasta</div>
+            <div class="food-option" onclick="selectFood('salad')">Salad</div>
+            <div class="food-option" onclick="selectFood('sandwich')">Sandwich</div>
+            <div class="food-option" onclick="selectFood('soup')">Soup</div>
+            <div class="food-option" onclick="selectFood('ice cream')">Ice Cream</div>
+            
+            <input type="text" placeholder="Or search for other foods..." onkeyup="searchDemo(this.value)">
+            <div id="search-results"></div>
+        </div>
+        
+        <div id="result" style="margin-top: 15px;"></div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Key Features</h2>
+        <ul>
+            <li>✅ <strong>Confidence Threshold:</strong> Shows correction options when confidence < 30%</li>
+            <li>✅ <strong>Smart Suggestions:</strong> 8 curated food options based on ML predictions and food categories</li>
+            <li>✅ <strong>Real-time Search:</strong> Search through 100+ foods with autocomplete</li>
+            <li>✅ <strong>Instant Updates:</strong> No page reload, AJAX-powered updates</li>
+            <li>✅ <strong>Accurate Calories:</strong> Recalculates calories based on corrected food</li>
+            <li>✅ <strong>Visual Feedback:</strong> Clear confirmation when food is corrected</li>
+            <li>✅ <strong>Responsive Design:</strong> Works on desktop and mobile</li>
+        </ul>
+    </div>
+
+    <div class="demo-section">
+        <h2>API Endpoints</h2>
+        <p><strong>Food Suggestions:</strong> <code>GET /api/food-suggestions/?q=pizza</code></p>
+        <p><strong>Update Food:</strong> <code>POST /api/update-food/</code></p>
+        <pre>
+{
+  "selected_food": "pizza",
+  "serving_factor": 1.0
+}
+        </pre>
+    </div>
+
+    <script>
+        function confirmFood() {
+            document.querySelector('.warning').innerHTML = '✓ Food confirmed by user';
+            document.querySelector('.warning').className = 'success';
+            document.querySelector('.btn-confirm').style.display = 'none';
+            document.querySelector('.btn-select').style.display = 'none';
+        }
+
+        function showOptions() {
+            document.getElementById('food-options').style.display = 'block';
+        }
+
+        function selectFood(food) {
+            const calories = {
+                'pizza': 266,
+                'hamburger': 295,
+                'sushi': 130,
+                'pasta': 151,
+                'salad': 100,
+                'sandwich': 250,
+                'soup': 50,
+                'ice cream': 207
+            };
+
+            document.getElementById('result').innerHTML = `
+                <div class="success">✓ Food corrected by user</div>
+                <h3>Updated Result: ${food.charAt(0).toUpperCase() + food.slice(1)}</h3>
+                <p><strong>Estimated calories:</strong> ${calories[food] || 200} kcal</p>
+                <p><strong>Related foods:</strong> Updated based on selection</p>
+            `;
+            
+            document.getElementById('food-options').style.display = 'none';
+            document.querySelector('.warning').style.display = 'none';
+        }
+
+        function searchDemo(query) {
+            const foods = ['Apple Pie', 'Baklava', 'Beef Carpaccio', 'Caesar Salad', 'Cheesecake', 'Donuts', 'French Fries', 'Garlic Bread', 'Ice Cream', 'Lasagna'];
+            const results = foods.filter(food => food.toLowerCase().includes(query.toLowerCase()));
+            
+            const resultsDiv = document.getElementById('search-results');
+            resultsDiv.innerHTML = '';
+            
+            if (query.length > 1 && results.length > 0) {
+                results.slice(0, 5).forEach(food => {
+                    const div = document.createElement('div');
+                    div.className = 'food-option';
+                    div.textContent = food;
+                    div.onclick = () => selectFood(food.toLowerCase());
+                    resultsDiv.appendChild(div);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

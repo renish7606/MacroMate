@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load socialaccount %}
+
+{% block body_class %}auth-page{% endblock %}
+{% block head_title %}Sign up — MacroMate{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="card auth-card">
+
+    <h2 class="auth-title">Create your account</h2>
+    <p class="muted auth-subtitle">Start tracking your meals today</p>
+
+    <form method="post" action="{% url 'account_signup' %}" class="auth-form">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label>Email</label>
+        {{ form.email }}
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        {{ form.password1 }}
+      </div>
+
+      <div class="form-group">
+        <label>Confirm Password</label>
+        {{ form.password2 }}
+      </div>
+
+      <button type="submit" class="btn-primary">Create account</button>
+    </form>
+
+    <div class="divider">OR</div>
+
+    <a href="{% provider_login_url 'google' %}" class="btn-google">
+      Sign up with Google
+    </a>
+
+    <p class="auth-footer">
+      Already have an account?
+      <a href="{% url 'account_login' %}">Sign in</a>
+    </p>
+
+  </div>
+</div>
+{% endblock %}
