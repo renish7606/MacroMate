@@ -33,18 +33,36 @@
   <div class="meals-section">
     <h4>Meals & Snacks</h4>
 
-    {% if todays_meals %}
+    {% if meals %}
       <div class="meals-list">
-        {% for meal in todays_meals %}
+        {% for meal in meals %}
           <div class="meal-item">
             <div class="meal-info">
-              <h5 class="meal-name">{{ meal.food_name }}</h5>
-              <p class="meal-time">{{ meal.get_time_display }}</p>
+              <h5 class="meal-name">{{ meal.food }}</h5>
+              <p class="meal-time">{{ meal.created_at|time:"H:i" }}</p>
             </div>
+
             <div class="meal-calories">
               <span class="calories">{{ meal.calories }}</span>
               <span class="kcal-small">kcal</span>
             </div>
+
+            <!-- ✅ MACROS -->
+            <div class="macro-grid mini">
+              <div class="macro">
+                <span>P</span>
+                <strong>{{ meal.protein }} g</strong>
+              </div>
+              <div class="macro">
+                <span>C</span>
+                <strong>{{ meal.carbs }} g</strong>
+              </div>
+              <div class="macro">
+                <span>F</span>
+                <strong>{{ meal.fat }} g</strong>
+              </div>
+            </div>
+
           </div>
         {% endfor %}
       </div>
@@ -59,33 +77,62 @@
   </div>
 
   <!-- Quick Stats -->
-  {% if todays_meals %}
-    <div class="quick-stats">
-      <h4>Quick Stats</h4>
-      <div class="stats-grid">
-        <div class="stat-item">
-          <span class="stat-number">{{ meal_count }}</span>
-          <span class="stat-label">Meals</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">{{ total_calories }}</span>
-          <span class="stat-label">Calories</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">
+  {% if meals %}
+  <div class="quick-stats">
+    <h4>Quick Stats</h4>
+
+    <div class="stats-grid">
+      <!-- Meals -->
+      <div class="stat-item">
+        <span class="stat-number">{{ meal_count }}</span>
+        <span class="stat-label">Meals</span>
+      </div>
+
+      <!-- Calories -->
+      <div class="stat-item">
+        <span class="stat-number">{{ total_calories }}</span>
+        <span class="stat-label">Calories</span>
+      </div>
+
+      <!-- Avg Calories -->
+      <div class="stat-item">
+        <span class="stat-number">
+          {% if meal_count %}
             {% widthratio total_calories meal_count 1 %}
-          </span>
-          <span class="stat-label">Avg / Meal</span>
-        </div>
+          {% else %}
+            0
+          {% endif %}
+        </span>
+        <span class="stat-label">Avg / Meal</span>
+      </div>
+
+      <!-- Protein -->
+      <div class="stat-item">
+        <span class="stat-number">{{ total_protein|floatformat:1 }}</span>
+        <span class="stat-label">Protein (g)</span>
+      </div>
+
+      <!-- Carbs -->
+      <div class="stat-item">
+        <span class="stat-number">{{ total_carbs|floatformat:1 }}</span>
+        <span class="stat-label">Carbs (g)</span>
+      </div>
+
+      <!-- Fat -->
+      <div class="stat-item">
+        <span class="stat-number">{{ total_fat|floatformat:1 }}</span>
+        <span class="stat-label">Fat (g)</span>
       </div>
     </div>
-  {% endif %}
+  </div>
+{% endif %}
+
 
   <!-- Actions -->
   <div class="actions">
     <a href="/" class="btn-secondary">Analyze New Food</a>
 
-    {% if todays_meals %}
+    {% if meals %}
       <button class="btn-primary" onclick="exportHistory()">
         Export Today's Log
       </button>
@@ -93,7 +140,7 @@
   </div>
 
   <footer class="foot">
-    Meal history is stored locally and resets daily for a fresh start.
+    Meal history is stored per user and updates automatically.
   </footer>
 
 </section>
@@ -104,11 +151,14 @@
 <script>
   function exportHistory() {
     const meals = [
-      {% for meal in todays_meals %}
+      {% for meal in meals %}
       {
-        food: "{{ meal.food_name|escapejs }}",
+        food: "{{ meal.food|escapejs }}",
         calories: {{ meal.calories }},
-        time: "{{ meal.get_time_display|escapejs }}"
+        protein: {{ meal.protein }},
+        carbs: {{ meal.carbs }},
+        fat: {{ meal.fat }},
+        time: "{{ meal.created_at|time:'H:i' }}"
       }{% if not forloop.last %},{% endif %}
       {% endfor %}
     ];
@@ -127,14 +177,8 @@
 
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "food_history_{{ today_date|date:'Y-m-d' }}.json";
+    a.download = "macromate_history_{{ today_date|date:'Y-m-d' }}.json";
     a.click();
   }
-
-  setInterval(() => {
-    if (window.location.pathname === '/history/') {
-      window.location.reload();
-    }
-  }, 30000);
 </script>
 {% endblock %}

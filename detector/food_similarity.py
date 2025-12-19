@@ -1,6 +1,7 @@
 import csv
 import os
 from difflib import get_close_matches
+from django.conf import settings
 
 # --------------------------------------------------
 # PATH
@@ -8,43 +9,46 @@ from difflib import get_close_matches
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CALORIE_PATH = os.path.join(BASE_DIR, "data", "calories.csv")
 
+CSV_FOODS = []
+FOOD_CALORIES = {}
+FOOD_NUTRITION = {}
+
 # --------------------------------------------------
 # LOAD CSV FOODS (SINGLE SOURCE OF TRUTH)
 # --------------------------------------------------
 def load_csv_foods():
-    foods = {}
-    with open(CALORIE_PATH, newline="", encoding="utf-8") as f:
+    csv_path = os.path.join(settings.BASE_DIR, "data", "calories.csv")
+
+    with open(csv_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
+
         for row in reader:
-            name = row["food"].strip().lower()
-            calories = float(row["calories_per_100g"])
-            foods[name] = calories
-    return foods
+            food = row["food"].strip().lower().replace(" ", "_")
 
-# Load once
-FOOD_DB = load_csv_foods()
-CSV_FOODS = set(FOOD_DB.keys())
+            FOOD_NUTRITION[food] = {
+                "calories": int(row["calorie"]),
+                "protein": float(row["protein"]),
+                "carbs": float(row["carbs"]),
+                "fat": float(row["fat"]),
+            }
 
-# --------------------------------------------------
-# CALORIE LOOKUP
-# --------------------------------------------------
-def get_calories_for_food(food_name, serving_factor=1.0):
-    if not food_name:
-        return None
+            CSV_FOODS.append(food)
 
-    food = food_name.strip().lower()
-    if food in FOOD_DB:
-        return int(FOOD_DB[food] * serving_factor)
+# load once
+load_csv_foods()
 
-    return None
 
-# --------------------------------------------------
-# RELATED FOODS
-# --------------------------------------------------
-def get_related_foods(food_name, limit=5):
-    if not food_name:
-        return []
+def get_nutrition_for_food(food):
+    food = food.lower().replace(" ", "_")
+    return FOOD_NUTRITION.get(food)
 
-    food = food_name.strip().lower()
-    matches = get_close_matches(food, CSV_FOODS, n=limit + 1, cutoff=0.6)
-    return [m.title() for m in matches if m != food][:limit]
+
+def get_related_foods(food):
+    food = food.lower().replace(" ", "_")
+    related = []
+
+    for f in CSV_FOODS:
+        if f != food and (food in f or f in food):
+            related.append(f.replace("_", " ").title())
+
+    return related[:5]

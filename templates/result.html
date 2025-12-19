@@ -4,10 +4,8 @@
 {% block head_title %}Result — MacroMate{% endblock %}
 
 {% block content %}
-
 <section class="card result-card">
 
-  <!-- Back -->
   <a href="{% url 'reset_analysis' %}" class="back-link">← Analyze another</a>
 
   <div class="result-grid">
@@ -24,40 +22,58 @@
     <!-- RESULT BODY -->
     <div class="result-body">
 
-      <!-- FOOD NAME -->
       <h2 class="result-title">{{ food }}</h2>
 
-      <!-- CONFIDENCE -->
       <p class="confidence">
         Model confidence: <strong>{{ confidence }}%</strong>
       </p>
 
       {% if needs_confirmation %}
-        <!-- CONFIRMATION BOX -->
-        <div class="confirm-box">
-          <p class="warning">⚠️ We may be wrong. Please confirm the food.</p>
+      <div class="confirm-box">
+        <p class="warning">
+          ⚠️ We couldn't confidently recognize this food. Please type the food name.
+        </p>
 
-          <input
-            type="text"
-            id="food-search"
-            placeholder="Type food name (e.g. apple pie)"
-            onkeyup="searchFood(this.value)"
-          >
+        <input
+          type="text"
+          id="manual-food-input"
+          placeholder="Type food name (e.g. pizza)"
+          value="{{ suggested_hint }}"
+          autofocus
+          oninput="searchFood(this.value)"
+        >
 
-          <div id="food-results" class="food-results"></div>
-        </div>
+        <div id="food-results" class="food-results"></div>
+      </div>
       {% else %}
         <div class="confidence-good">
           ✓ High confidence prediction
         </div>
       {% endif %}
 
-      <!-- CALORIES -->
-      {% if calories %}
-      <div class="calorie-card">
-        <p class="muted">Estimated calories</p>
-        <p class="cal-num">{{ calories }} <span class="kcal">kcal</span></p>
-      </div>
+      {% if calories is not None %}
+        <div class="calorie-card">
+          <p class="muted">Estimated nutrition</p>
+          <div class="macro-grid">
+            {% comment %} <p class="cal-num">{{ calories }} <span class="kcal">kcal</span></p> {% endcomment %}
+            <div class="macro">
+              <span>calorie</span>
+              <strong>{{ calories }} g</strong>
+            </div>
+            <div class="macro">
+              <span>Protein</span>
+              <strong>{{ protein }} g</strong>
+            </div>
+            <div class="macro">
+              <span>Carbs</span>
+              <strong>{{ carbs }} g</strong>
+            </div>
+            <div class="macro">
+              <span>Fat</span>
+              <strong>{{ fat }} g</strong>
+            </div>
+          </div>
+        </div>
       {% endif %}
 
       <!-- RELATED FOODS -->
@@ -66,7 +82,11 @@
         <ul>
           {% if related %}
             {% for item in related %}
-              <li>{{ item }}</li>
+              {% if item.food %}
+                <li>{{ item.food|title }} ({{ item.confidence }}%)</li>
+              {% else %}
+                <li>{{ item|title }}</li>
+              {% endif %}
             {% endfor %}
           {% else %}
             <li>No related foods</li>
@@ -82,9 +102,11 @@
           Save to history
         </button>
 
-        <button class="btn-primary" onclick="downloadResult()">
-          Download Report
-        </button>
+        <form action="{% url 'download_history_pdf' %}" method="get">
+          <button type="submit" class="btn-primary">
+            Download Report
+          </button>
+        </form>
       </div>
 
     </div>
@@ -95,22 +117,22 @@
   </footer>
 
 </section>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
 const CSV_FOODS = {{ csv_foods|safe }};
 
+/* ---------- AUTOCOMPLETE ---------- */
 function searchFood(query) {
   const results = document.getElementById("food-results");
   results.innerHTML = "";
 
   if (query.length < 2) return;
 
-  const matches = CSV_FOODS.filter(f =>
-    f.toLowerCase().includes(query.toLowerCase())
-  ).slice(0, 8);
+  const matches = CSV_FOODS
+    .filter(f => f.toLowerCase().includes(query.toLowerCase()))
+    .slice(0, 8);
 
   matches.forEach(food => {
     const btn = document.createElement("button");
@@ -121,53 +143,48 @@ function searchFood(query) {
   });
 }
 
+/* ---------- CONFIRM FOOD ---------- */
 function confirmFood(food) {
-  fetch("/api/confirm-food/", {
+  fetch("{% url 'confirm_food' %}", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
     body: JSON.stringify({ food })
-  })
-  .then(() => location.reload());
-}
-
-function downloadResult() {
-  const data = {
-    food: "{{ food }}",
-    calories: "{{ calories }} kcal",
-    confidence: "{{ confidence }}%"
-  };
-
-  const blob = new Blob(
-    [JSON.stringify(data, null, 2)],
-    { type: "application/json" }
-  );
-
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "macro_mate_result.json";
-  a.click();
-}
-
-function saveMeal() {
-  const formData = new FormData();
-  formData.append("food", "{{ food }}");
-  formData.append("calories", "{{ calories }}");
-  formData.append("image", "{{ image }}");
-
-  fetch("/save-history/", {
-    method: "POST",
-    headers: {
-      "X-CSRFToken": "{{ csrf_token }}"
-    },
-    body: formData
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.success) {
-      alert("Meal saved");
-    }
+  }).then(() => {
+    window.location.href = "/";
   });
 }
 
+/* ---------- SAVE MEAL ---------- */
+function saveMeal() {
+  fetch("{% url 'save_to_history' %}", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    body: new URLSearchParams({
+      food: "{{ food }}",
+      calories: "{{ calories }}",
+      protein: "{{ protein }}",
+      carbs: "{{ carbs }}",
+      fat: "{{ fat }}",
+      image: "{{ image }}"
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert("Saved to history ✅");
+      window.location.href = "/history/";
+    } else {
+      alert("Failed to save ❌");
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Error saving meal");
+  });
+}
 </script>
 {% endblock %}

@@ -523,3 +523,55 @@ body.auth-page .auth-card {
   position: relative;
   z-index: 1;
 }
+
+
+.calorie-card {
+  background: #141a2b;
+  padding: 20px;
+  border-radius: 16px;
+  margin-top: 20px;
+}
+
+.muted {
+  color: #aab0d0;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.cal-num {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 18px;
+}
+
+.kcal {
+  font-size: 14px;
+  color: #aab0d0;
+}
+
+/* Macro boxes */
+.macro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.macro {
+  background: #1e2640;
+  border-radius: 12px;
+  padding: 14px 10px;
+  text-align: center;
+}
+
+.macro span {
+  display: block;
+  font-size: 13px;
+  color: #aab0d0;
+  margin-bottom: 4px;
+}
+
+.macro strong {
+  font-size: 16px;
+  color: #ffffff;
+}

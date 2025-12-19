@@ -50,11 +50,22 @@ class MealLog(models.Model):
         created_local = timezone.localtime(self.created_at)
         return created_local.strftime('%B %d, %Y')
 
+from django.db import models
+from django.contrib.auth.models import User
+
 class FoodHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     food = models.CharField(max_length=100)
-    calories = models.FloatField()
-    image = models.TextField(null=True, blank=True)
+    calories = models.IntegerField()
+
+    # ✅ Macros (safe defaults)
+    protein = models.FloatField(default=0)
+    carbs = models.FloatField(default=0)
+    fat = models.FloatField(default=0)
+
+    # ✅ Image optional
+    image = models.CharField(max_length=255, blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
