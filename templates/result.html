@@ -53,12 +53,12 @@
 
       {% if calories is not None %}
         <div class="calorie-card">
-          <p class="muted">Estimated nutrition</p>
+          <p class="muted">Estimated nu     trition</p>
           <div class="macro-grid">
             {% comment %} <p class="cal-num">{{ calories }} <span class="kcal">kcal</span></p> {% endcomment %}
             <div class="macro">
               <span>calorie</span>
-              <strong>{{ calories }} g</strong>
+              <strong>{{ calories }} kcal</strong>
             </div>
             <div class="macro">
               <span>Protein</span>
@@ -75,6 +75,31 @@
           </div>
         </div>
       {% endif %}
+
+      <div class="chat-card">
+  <div class="chat-header">
+    🤖 MacroMate Assistant
+  </div>
+
+  <div class="chat-body" id="chat-messages">
+    <div class="chat-bubble bot">
+      I detected <b>{{ food }}</b> 🍽️<br>
+      How much did you eat?<br>
+      <small>e.g. 2 slices, half pizza, 1.5 scoops</small>
+    </div>
+  </div>
+
+  <div class="chat-input-wrapper">
+    <input
+      type="text"
+      id="portionInput"
+      placeholder="Type your portion (e.g. 2 slices)"
+    />
+    <button onclick="sendPortion()">➤</button>
+  </div>
+</div>
+
+
 
       <!-- RELATED FOODS -->
       <div class="topk">
@@ -184,6 +209,50 @@ function saveMeal() {
   .catch(err => {
     console.error(err);
     alert("Error saving meal");
+  });
+}
+
+/* ---------- CHAT INTERFACE ---------- */
+function sendPortion() {
+  const input = document.getElementById("portionInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  const chat = document.getElementById("chat-messages");
+
+  // show user message
+  chat.innerHTML += `
+    <div class="chat-bubble user">
+      ${text}
+    </div>
+  `;
+
+  input.value = "";
+  chat.scrollTop = chat.scrollHeight;
+
+  // send to backend
+  fetch("/api/parse-portion/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    body: JSON.stringify({
+      food: "{{ food }}",
+      portion_text: text
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    chat.innerHTML += `
+      <div class="chat-bubble bot">
+        🍽 <b>Calculated Nutrition:</b><br>
+        Calories: ${data.calories} kcal<br>
+        Protein: ${data.protein} g<br>
+        Carbs: ${data.carbs} g<br>
+        Fat: ${data.fat} g
+      </div>
+    `;
   });
 }
 </script>

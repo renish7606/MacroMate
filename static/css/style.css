@@ -575,3 +575,97 @@ body.auth-page .auth-card {
   font-size: 16px;
   color: #ffffff;
 }
+
+
+/* === Chat Card === */
+.chat-card {
+  width: 420px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 18px;
+  padding: 16px;
+  margin: 30px auto;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Header */
+.chat-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: #eaeaf0;
+  margin-bottom: 12px;
+  opacity: 0.9;
+}
+
+/* Body */
+.chat-body {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+/* Bubbles */
+.chat-bubble {
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  max-width: 80%;
+}
+
+.chat-bubble.bot {
+  background: linear-gradient(135deg, #2b3150, #1e233a);
+  color: #e6e9ff;
+  align-self: flex-start;
+}
+
+.chat-bubble.user {
+  background: linear-gradient(135deg, #ff7a18, #ff4d6d);
+  color: #fff;
+  align-self: flex-end;
+}
+
+/* === INPUT FIX (MOST IMPORTANT PART) === */
+.chat-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 6px;
+}
+
+.chat-input-wrapper input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.chat-input-wrapper input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.chat-input-wrapper button {
+  background: linear-gradient(135deg, #ff7a18, #ff4d6d);
+  border: none;
+  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-input-wrapper button:hover {
+  opacity: 0.9;
+}

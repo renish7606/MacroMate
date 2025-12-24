@@ -3,7 +3,11 @@ import os
 from django.conf import settings
 import json
 from django.shortcuts import render, redirect
+from services.nutrition_provider import get_nutrition
 from django.http import JsonResponse
+from services.portion_parser import parse_quantity
+from services.api_nutrition import get_nutrition_from_api
+from services.csv_nutrition import get_nutrition_from_csv
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from datetime import datetime
@@ -116,7 +120,8 @@ def index(request):
     image = request.session.get("uploaded_image")
 
     if confirmed_food:
-        nutrition = get_nutrition_for_food(confirmed_food)
+        # nutrition = get_nutrition_for_food(confirmed_food)
+        nutrition = get_nutrition(confirmed_food)
 
         return render(request, "result.html", {
             "food": confirmed_food.replace("_", " ").title(),
@@ -149,7 +154,8 @@ def index(request):
 
         # -------- HIGH CONFIDENCE --------
         if confidence >= 40:
-            nutrition = get_nutrition_for_food(food)
+            # nutrition = get_nutrition_for_food(food)
+            nutrition = get_nutrition(confirmed_food)
 
             return render(request, "result.html", {
                 "food": food.replace("_", " ").title(),
@@ -387,3 +393,43 @@ def download_history_pdf(request):
 
 #             CALORIE_MAP[food] = int(calorie)
 
+
+
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def parse_portion_api(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=400)
+
+    data = json.loads(request.body)
+    food = data.get("food")
+    portion_text = data.get("portion_text")
+
+    if not food or not portion_text:
+        return JsonResponse({"error": "Missing data"}, status=400)
+
+    # 1️⃣ Convert portion → grams
+    grams = parse_quantity(portion_text, food)
+
+    # 2️⃣ Try API nutrition
+    nutrition = get_nutrition_from_api(food , grams=grams)
+
+    # 3️⃣ Fallback to CSV
+    if not nutrition:
+        nutrition = get_nutrition_from_csv(food)
+
+    if not nutrition:
+        return JsonResponse({"error": "Nutrition not found"}, status=404)
+
+    # 4️⃣ Scale nutrition by grams (API is per default portion)
+    result = {
+    "grams": grams,
+    "calories": nutrition["calories"],
+    "protein": nutrition["protein"],
+    "carbs": nutrition["carbs"],
+    "fat": nutrition["fat"],
+    }
+
+
+    return JsonResponse(result)

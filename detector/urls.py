@@ -28,6 +28,7 @@ from .views import (
     get_food_suggestions_api,
     meal_history,
     confirm_food_and_log,
+    parse_portion_api,
 )
 
 urlpatterns = [
@@ -38,4 +39,5 @@ urlpatterns = [
     path("api/confirm-food/", confirm_food_and_log, name="confirm_food"),
     path("api/food-suggestions/", get_food_suggestions_api),
     path("history/download/", download_history_pdf, name="download_history_pdf"),
+    path("api/parse-portion/", parse_portion_api , name="parse_portion_api"),
 ]
