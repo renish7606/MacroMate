@@ -92,6 +92,7 @@ spaghetti_bolognese
 spaghetti_carbonara
 spring_rolls
 steak
+strawberry_shortcake
 sushi
 tacos
 takoyaki
