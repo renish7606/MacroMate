@@ -448,11 +448,13 @@ try:
     # Load CLIP model once
     device = "cuda" if torch.cuda.is_available() else "cpu"
     clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)
-    print(f"✅ CLIP model loaded on {device}")
+    # Avoid unicode/emoji prints at import time (can crash on Windows cp1252 consoles)
+    print(f"CLIP model loaded on {device}")
     
 except ImportError:
     CLIP_AVAILABLE = False
-    print("❌ CLIP not installed. Install with: pip install git+https://github.com/openai/CLIP.git")
+    # Avoid unicode/emoji prints at import time (can crash on Windows cp1252 consoles)
+    print("CLIP not installed. Install with: pip install git+https://github.com/openai/CLIP.git")
 
 # ================= CONFIG =================
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -7,7 +7,7 @@
 
   <title>
     {% block head_title %}
-      MacroMate — Personal Calorie Tracking
+      MacroMate — AI Nutrition Platform
     {% endblock %}
   </title>
 
@@ -20,67 +20,101 @@
 <body class="{% block body_class %}{% endblock %}">
 
   <!-- ================= HEADER ================= -->
-  <header class="app-header">
-    <div class="header-inner">
-      <div class="brand">
-        <h1>MacroMate</h1>
-        <p class="tagline">Personal calorie tracking</p>
-      </div>
-  
-      <nav class="nav">
-        <a href="/" class="nav-link">Analyze Food</a>
-        <a href="/history/" class="nav-link">Food History</a>
-  
-        {% if request.user.is_authenticated %}
-          <span class="nav-user">Hi, {{ request.user.username }}</span>
-          <a href="{% url 'account_logout' %}" class="nav-link">Logout</a>
-        {% else %}
-          <a href="{% url 'account_login' %}" class="nav-link">Login</a>
-          <a href="{% url 'account_signup' %}" class="nav-link">Sign up</a>
-        {% endif %}
+  <header class="mm-nav">
+    <div class="mm-nav__inner">
+      <a class="mm-brand" href="{% url 'dashboard' %}">
+        <span class="mm-brand__mark" aria-hidden="true"></span>
+        <span class="mm-brand__text">MacroMate</span>
+      </a>
+
+      <nav class="mm-nav__links" aria-label="Primary">
+        <a class="mm-link {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
+        <a class="mm-link {% if request.resolver_match.url_name == 'upload_food' %}is-active{% endif %}" href="{% url 'upload_food' %}">Upload Food</a>
+        <a class="mm-link {% if request.resolver_match.url_name == 'analysis' %}is-active{% endif %}" href="{% url 'analysis' %}">Analysis</a>
+        <a class="mm-link {% if request.resolver_match.url_name == 'assistant' %}is-active{% endif %}" href="{% url 'assistant' %}">Assistant</a>
+        <a class="mm-link {% if request.resolver_match.url_name == 'profile' %}is-active{% endif %}" href="{% url 'profile' %}">Profile</a>
       </nav>
+
+      <div class="mm-nav__right">
+        {% if request.user.is_authenticated %}
+          <div class="mm-avatar" data-dropdown>
+            <button class="mm-avatar__btn" type="button" aria-haspopup="menu" aria-expanded="false">
+              <span class="mm-avatar__circle" aria-hidden="true">{{ request.user.username|first|upper }}</span>
+              <span class="mm-avatar__name">{{ request.user.username }}</span>
+              <svg class="mm-avatar__chev" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+
+            <div class="mm-menu" role="menu">
+              <a class="mm-menu__item" role="menuitem" href="{% url 'profile' %}">View Profile</a>
+              <a class="mm-menu__item" role="menuitem" href="{% url 'dashboard' %}#progress">Progress</a>
+              <div class="mm-menu__sep" role="separator"></div>
+              <a class="mm-menu__item mm-menu__danger" role="menuitem" href="{% url 'account_logout' %}">Logout</a>
+            </div>
+          </div>
+        {% else %}
+          <div class="mm-auth">
+            <a class="mm-link" href="{% url 'account_login' %}">Login</a>
+            <a class="mm-btn mm-btn--primary" href="{% url 'account_signup' %}">Sign up</a>
+          </div>
+        {% endif %}
+      </div>
     </div>
   </header>
 
   <!-- ================= MAIN ================= -->
-  <main class="main-content">
+  <main class="mm-main">
     {% block content %}
     {% endblock %}
   </main>
 
   <!-- ================= FOOTER ================= -->
-  <footer class="site-footer">
-    <div class="footer-container">
-
-      <div class="footer-left">
-        <h3>MacroMate</h3>
-        <p>Personal calorie tracking made simple.</p>
+  <footer class="mm-footer">
+    <div class="mm-footer__inner">
+      <div class="mm-footer__left">
+        <div class="mm-footer__brand">MacroMate</div>
+        <div class="mm-footer__tag">MacroMate – AI Powered Personalized Nutrition Assistant</div>
       </div>
-
-      <div class="footer-center">
-        <h4>Quick Links</h4>
-        <ul>
-          <li><a href="/">Home</a></li>
-          <li><a href="/history/">Food History</a></li>
-          <li><a href="{% url 'account_login' %}">Login</a></li>
-          <li><a href="{% url 'account_signup' %}">Sign Up</a></li>
-        </ul>
+      <div class="mm-footer__right">
+        <a class="mm-footer__link" href="#">About</a>
+        <a class="mm-footer__link" href="#">Privacy Policy</a>
+        <a class="mm-footer__link" href="#">Contact</a>
+        <span class="mm-footer__copy">© <span id="year"></span></span>
       </div>
-
-      <div class="footer-right">
-        <p>© <span id="year"></span> MacroMate</p>
-        <p class="small">All rights reserved.</p>
-      </div>
-
     </div>
   </footer>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
+    (function () {
+      const root = document.querySelector('[data-dropdown]');
+      if (!root) return;
+      const btn = root.querySelector('.mm-avatar__btn');
+      const menu = root.querySelector('.mm-menu');
+      const close = () => {
+        root.classList.remove('is-open');
+        btn && btn.setAttribute('aria-expanded', 'false');
+      };
+      btn && btn.addEventListener('click', () => {
+        const open = !root.classList.contains('is-open');
+        root.classList.toggle('is-open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      document.addEventListener('click', (e) => {
+        if (!root.contains(e.target)) close();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close();
+      });
+      menu && menu.addEventListener('click', (e) => {
+        const t = e.target;
+        if (t && t.matches('a')) close();
+      });
+    })();
   </script>
 
   {% block extra_js %}{% endblock %}
 
 </body>
 </html>
-<!-- for testing -->

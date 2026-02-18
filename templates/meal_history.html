@@ -71,7 +71,7 @@
         <div class="empty-icon">🍽️</div>
         <h4>No meals logged today</h4>
         <p class="muted">Start by analyzing your first food item!</p>
-        <a href="/" class="btn-primary">Analyze Food</a>
+        <a href="{% url 'upload_food' %}" class="btn-primary">Analyze Food</a>
       </div>
     {% endif %}
   </div>
@@ -130,7 +130,7 @@
 
   <!-- Actions -->
   <div class="actions">
-    <a href="/" class="btn-secondary">Analyze New Food</a>
+    <a href="{% url 'upload_food' %}" class="btn-secondary">Analyze New Food</a>
 
     {% if meals %}
       <button class="btn-primary" onclick="exportHistory()">

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block head_title %}Profile — MacroMate{% endblock %}
+
+{% block content %}
+<div class="mm-pagehead">
+  <div>
+    {% if has_filled and not show_form %}
+      <h1 class="mm-title">{{ display_name }}</h1>
+      <p class="mm-subtitle">Your nutrition profile</p>
+    {% else %}
+      <h1 class="mm-title">Personal Nutrition Profile</h1>
+      <p class="mm-subtitle">{% if has_filled %}Edit your profile{% else %}Set up your profile{% endif %}</p>
+    {% endif %}
+  </div>
+  {% if has_filled and not show_form %}
+  <div class="mm-actions">
+    <a class="mm-btn mm-btn--primary" href="{% url 'profile' %}?edit=1">Edit</a>
+  </div>
+  {% endif %}
+</div>
+
+<section class="mm-grid">
+  <div class="mm-card" style="grid-column: 3 / span 8;">
+    {% if show_form %}
+    <form class="mm-form" method="post" action="{% url 'profile' %}">
+      {% csrf_token %}
+      <div class="mm-grid">
+        <div class="mm-field" style="grid-column: span 12;">
+          <label class="mm-label" for="name">Name</label>
+          <input class="mm-input" id="name" name="name" type="text" placeholder="Your name" value="{% if profile %}{{ profile.name }}{% endif %}" />
+        </div>
+        <div class="mm-field" style="grid-column: span 6;">
+          <label class="mm-label" for="height">Height (cm)</label>
+          <input class="mm-number" id="height" name="height" type="number" min="80" max="250" placeholder="e.g. 170" value="{% if profile and profile.height %}{{ profile.height }}{% endif %}" required />
+        </div>
+        <div class="mm-field" style="grid-column: span 6;">
+          <label class="mm-label" for="weight">Weight (kg)</label>
+          <input class="mm-number" id="weight" name="weight" type="number" min="25" max="300" placeholder="e.g. 68" value="{% if profile and profile.weight %}{{ profile.weight }}{% endif %}" required />
+        </div>
+        <div class="mm-field" style="grid-column: span 6;">
+          <label class="mm-label" for="age">Age</label>
+          <input class="mm-number" id="age" name="age" type="number" min="10" max="120" placeholder="e.g. 21" value="{% if profile and profile.age %}{{ profile.age }}{% endif %}" required />
+        </div>
+        <div class="mm-field" style="grid-column: span 6;">
+          <label class="mm-label" for="gender">Gender</label>
+          <select class="mm-select" id="gender" name="gender" required>
+            <option value="male" {% if not profile or profile.gender == 'male' %}selected{% endif %}>Male</option>
+            <option value="female" {% if profile and profile.gender == 'female' %}selected{% endif %}>Female</option>
+          </select>
+        </div>
+        <div class="mm-field" style="grid-column: span 6;">
+          <label class="mm-label" for="activity">Activity Level</label>
+          <select class="mm-select" id="activity" name="activity" required>
+            <option value="office" {% if not profile or profile.activity_level == 'office' %}selected{% endif %}>Office (Sedentary)</option>
+            <option value="moderate" {% if profile and profile.activity_level == 'moderate' %}selected{% endif %}>Moderate</option>
+            <option value="athlete" {% if profile and profile.activity_level == 'athlete' %}selected{% endif %}>Athlete</option>
+          </select>
+        </div>
+        <div class="mm-field" style="grid-column: span 6;">
+          <label class="mm-label">Goal</label>
+          <div class="mm-radio">
+            <label><input type="radio" name="goal" value="loss" {% if profile and profile.goal == 'loss' %}checked{% endif %} /> Weight Loss</label>
+            <label><input type="radio" name="goal" value="maintain" {% if not profile or profile.goal == 'maintain' or not profile.goal %}checked{% endif %} /> Maintain Weight</label>
+            <label><input type="radio" name="goal" value="gain" {% if profile and profile.goal == 'gain' %}checked{% endif %} /> Weight Gain</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mm-actions" style="margin-top: 6px;">
+        <button class="mm-btn mm-btn--primary" type="submit">Save & Calculate Calories</button>
+        {% if has_filled %}
+        <a class="mm-btn mm-btn--secondary" href="{% url 'profile' %}">Cancel</a>
+        {% else %}
+        <button class="mm-btn mm-btn--secondary" type="reset">Reset</button>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if has_filled and profile and profile.daily_calorie_goal %}
+    <div class="mm-card" style="margin-top: 14px; border-color: rgba(37,99,235,0.20); background: rgba(37,99,235,0.05); box-shadow: none;">
+      <div class="mm-kpi">
+        <div>
+          <div class="mm-kpi__label">Your daily maintenance calorie requirement is:</div>
+          <div class="mm-kpi__value">{{ profile.daily_calorie_goal }} kcal</div>
+        </div>
+        <span class="mm-pill mm-pill--info">Calculated</span>
+      </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="mm-profile-display">
+      <div class="mm-kpi">
+        <div>
+          <div class="mm-kpi__label">Daily calorie target</div>
+          <div class="mm-kpi__value">{{ profile.daily_calorie_goal }} kcal</div>
+          <div class="mm-kpi__meta">Height {{ profile.height|default:"—" }} cm · Weight {{ profile.weight|default:"—" }} kg · {{ profile.get_gender_display|default:profile.gender|default:"—" }} · {{ profile.get_activity_level_display|default:profile.activity_level|default:"—" }}</div>
+        </div>
+        <span class="mm-pill mm-pill--info">Profile</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

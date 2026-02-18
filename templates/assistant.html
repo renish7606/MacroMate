@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block head_title %}Assistant — MacroMate{% endblock %}
+
+{% block content %}
+<div class="mm-pagehead">
+  <div>
+    <h1 class="mm-title">MacroMate Assistant</h1>
+    <p class="mm-subtitle">I only answer questions related to food, nutrition, diet, and health.</p>
+  </div>
+</div>
+
+<section class="mm-grid">
+  <div class="mm-card" style="grid-column: span 7;">
+    <div class="mm-chat" id="chat">
+      <div class="mm-chat__top">
+        <span class="mm-pill mm-pill--info">Food-only AI</span>
+        <span class="mm-pill">Demo UI</span>
+      </div>
+
+      <div class="mm-chat__body" id="chatBody" aria-live="polite">
+        <div class="mm-bubble mm-bubble--bot">
+          Ask me anything about calories, macros, healthy swaps, meal timing, or micronutrients.
+        </div>
+      </div>
+
+      <div class="mm-chat__input">
+        <input class="mm-input" id="chatInput" type="text" placeholder="Ask a food or nutrition question (e.g. ‘Is oats good for weight loss?’)" />
+        <button class="mm-btn mm-btn--primary" type="button" id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mm-card" style="grid-column: span 5;">
+    <div class="mm-kpi">
+      <div>
+        <div class="mm-kpi__label">Restriction</div>
+        <div class="mm-kpi__meta">If you ask unrelated questions, MacroMate will politely refuse and redirect you to nutrition topics.</div>
+      </div>
+      <span class="mm-pill mm-pill--warn">Guardrails</span>
+    </div>
+
+    <div class="mm-card" style="margin-top: 12px; box-shadow: none;">
+      <div class="mm-kpi__label">Example</div>
+      <div class="mm-kpi__meta" style="margin-top: 8px;">
+        “What is the capital of France?”
+      </div>
+      <div class="mm-pill mm-pill--warn" style="margin-top: 10px;">
+        I’m designed to help only with food and nutrition-related topics.
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const foodKeywords = [
+    'food','nutrition','diet','calorie','calories','macro','macros','protein','carb','carbs','fat','fiber',
+    'vitamin','minerals','health','meal','breakfast','lunch','dinner','snack','weight','gain','loss','maintain',
+    'sugar','salt','sodium','cholesterol','hydration','water','fruits','vegetables'
+  ];
+
+  function looksFoodRelated(text) {
+    const t = (text || '').toLowerCase();
+    return foodKeywords.some(k => t.includes(k));
+  }
+
+  function addBubble(text, cls) {
+    const body = document.getElementById('chatBody');
+    const div = document.createElement('div');
+    div.className = `mm-bubble ${cls}`;
+    div.textContent = text;
+    body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function send() {
+    const input = document.getElementById('chatInput');
+    const q = (input.value || '').trim();
+    if (!q) return;
+    addBubble(q, 'mm-bubble--user');
+    input.value = '';
+
+    if (!looksFoodRelated(q)) {
+      addBubble("I’m designed to help only with food and nutrition-related topics.", 'mm-bubble--warn');
+      return;
+    }
+
+    addBubble("Thanks — this is a demo UI. Wire this to your backend/LLM later for real answers.", 'mm-bubble--bot');
+  }
+
+  document.getElementById('sendBtn').addEventListener('click', send);
+  document.getElementById('chatInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') send();
+  });
+</script>
+{% endblock %}
+

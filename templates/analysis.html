@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block head_title %}Analysis — MacroMate{% endblock %}
+
+{% block content %}
+<div class="mm-pagehead">
+  <div>
+    <h1 class="mm-title">Nutrition Insights & Analysis</h1>
+    <p class="mm-subtitle">Actionable, calm insights generated from your food logs. This page is designed to scale into deeper AI + analytics features.</p>
+  </div>
+</div>
+
+<section class="mm-grid">
+  <div class="mm-card" style="grid-column: span 7;">
+    <div class="mm-kpi">
+      <div>
+        <div class="mm-kpi__label">Macronutrient Patterns</div>
+        <div class="mm-kpi__meta">“The diet shows a balanced distribution of carbohydrates, protein, and fat across most meals.”</div>
+      </div>
+      <span class="mm-pill mm-pill--good">Balanced</span>
+    </div>
+    <div class="mm-chart mm-chart--tall" style="margin-top: 12px;">Macronutrient pattern visualization (placeholder)</div>
+  </div>
+
+  <div class="mm-card" style="grid-column: span 5;">
+    <div class="mm-kpi">
+      <div>
+        <div class="mm-kpi__label">Sugar Intake Analysis</div>
+        <div class="mm-kpi__meta">“Sugar intake spikes significantly during night meals, which may affect long-term weight maintenance.”</div>
+      </div>
+      <span class="mm-pill mm-pill--warn">Warning</span>
+    </div>
+    <div class="mm-chart" style="margin-top: 12px;">Sugar spikes by time-of-day (placeholder)</div>
+  </div>
+
+  <div class="mm-card" style="grid-column: span 7;">
+    <div class="mm-kpi">
+      <div>
+        <div class="mm-kpi__label">Micronutrient Deficiency / Excess Summary</div>
+        <div class="mm-kpi__meta">Highlights potential gaps and overages based on recent meals.</div>
+      </div>
+      <span class="mm-pill">Summary</span>
+    </div>
+    <div class="mm-grid" style="margin-top: 12px;">
+      <div class="mm-card" style="grid-column: span 4; box-shadow: none;">
+        <div class="mm-kpi__label">Vitamin C</div>
+        <div class="mm-kpi__meta">Likely low • add citrus/berries</div>
+        <div class="mm-mini" style="margin-top: 10px;">
+          <div class="mm-mini__bar"><span style="--w: 38%"></span></div>
+          <div class="mm-mini__value">38%</div>
+        </div>
+      </div>
+      <div class="mm-card" style="grid-column: span 4; box-shadow: none;">
+        <div class="mm-kpi__label">Fiber</div>
+        <div class="mm-kpi__meta">Moderate • add legumes/oats</div>
+        <div class="mm-mini" style="margin-top: 10px;">
+          <div class="mm-mini__bar"><span style="--w: 46%"></span></div>
+          <div class="mm-mini__value">46%</div>
+        </div>
+      </div>
+      <div class="mm-card" style="grid-column: span 4; box-shadow: none;">
+        <div class="mm-kpi__label">Sodium</div>
+        <div class="mm-kpi__meta">Potentially high • monitor snacks</div>
+        <div class="mm-mini" style="margin-top: 10px;">
+          <div class="mm-mini__bar"><span style="--w: 72%"></span></div>
+          <div class="mm-mini__value">High</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mm-card" style="grid-column: span 5;">
+    <div class="mm-kpi">
+      <div>
+        <div class="mm-kpi__label">Weekly Summary</div>
+        <div class="mm-kpi__meta">Totals vs target and nutrient balance overview.</div>
+      </div>
+      <span class="mm-pill mm-pill--info">7D</span>
+    </div>
+    <div class="mm-grid" style="margin-top: 12px;">
+      <div class="mm-card" style="grid-column: span 12; box-shadow: none;">
+        <div class="mm-kpi__label">Total calories vs target</div>
+        <div class="mm-chart" style="height: 120px; margin-top: 10px;">Weekly total calories vs target (placeholder)</div>
+      </div>
+      <div class="mm-card" style="grid-column: span 12; box-shadow: none;">
+        <div class="mm-kpi__label">Nutrient balance overview</div>
+        <div class="mm-chart" style="height: 120px; margin-top: 10px;">Balance panel (placeholder)</div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+

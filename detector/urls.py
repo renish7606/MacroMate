@@ -21,7 +21,11 @@
 
 from django.urls import path
 from .views import (
-    index,
+    dashboard,
+    upload_food,
+    analysis,
+    assistant,
+    profile,
     reset_analysis,
     save_to_history,
     download_history_pdf,
@@ -32,7 +36,11 @@ from .views import (
 )
 
 urlpatterns = [
-    path("", index, name="index"),
+    path("", dashboard, name="dashboard"),
+    path("upload/", upload_food, name="upload_food"),
+    path("analysis/", analysis, name="analysis"),
+    path("assistant/", assistant, name="assistant"),
+    path("profile/", profile, name="profile"),
     path("reset/", reset_analysis, name="reset_analysis"),
     path("history/", meal_history, name="meal_history"),
     path("save-history/", save_to_history, name="save_to_history"),

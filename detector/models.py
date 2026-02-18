@@ -70,3 +70,56 @@ class FoodHistory(models.Model):
 
     def __str__(self):
         return f"{self.food} - {self.calories} kcal"
+
+
+class UserProfile(models.Model):
+    """User nutrition profile: name + form data"""
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='profile',
+    )
+    name = models.CharField(max_length=120, blank=True)
+    height = models.PositiveIntegerField(null=True, blank=True)  # cm
+    weight = models.PositiveIntegerField(null=True, blank=True)  # kg
+    age = models.PositiveIntegerField(null=True, blank=True)
+    gender = models.CharField(max_length=20, choices=[('male', 'Male'), ('female', 'Female')], blank=True)
+    activity_level = models.CharField(
+        max_length=20,
+        choices=[
+            ('office', 'Office (Sedentary)'),
+            ('moderate', 'Moderate'),
+            ('athlete', 'Athlete'),
+        ],
+        blank=True,
+    )
+    goal = models.CharField(
+        max_length=20,
+        choices=[
+            ('loss', 'Weight Loss'),
+            ('maintain', 'Maintain Weight'),
+            ('gain', 'Weight Gain'),
+        ],
+        default='maintain',
+    )
+    daily_calorie_goal = models.IntegerField(default=2200, help_text='Calculated TDEE / target')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name or self.user.username} – Profile"
+
+
+class Exercise(models.Model):
+    """Track exercise calories burned"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='exercises')
+    name = models.CharField(max_length=100, help_text="Exercise name (e.g., Running, Cycling)")
+    calories_burned = models.IntegerField(help_text="Calories burned")
+    duration_minutes = models.IntegerField(default=0, help_text="Duration in minutes")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} – {self.calories_burned} kcal"

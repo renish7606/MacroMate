@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}Upload Food — MacroMate{% endblock %}
+
+{% block content %}
+<div class="mm-pagehead">
+  <div>
+    <h1 class="mm-title">Upload & Analyze Your Meal</h1>
+    <p class="mm-subtitle">Upload one or multiple food images to analyze and compare nutritional value.</p>
+  </div>
+</div>
+
+<section class="mm-grid">
+  <div class="mm-card" style="grid-column: span 7;">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <label class="mm-drop" for="image-input" id="dropzone">
+        <input id="image-input" type="file" name="image" accept="image/*" hidden multiple />
+
+        <div class="mm-drop__icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M7 10l5-5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 5v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+
+        <div class="mm-drop__title">Drag & drop food images</div>
+        <div class="mm-drop__hint">
+          Upload <b>1 to 3</b> images for comparison (demo UI). Current backend analyzes the first image.
+          Supported: JPG/PNG.
+        </div>
+        <div class="mm-pill mm-pill--info" id="fileCount">No files selected</div>
+      </label>
+
+      <div class="mm-actions" style="margin-top: 12px;">
+        <button type="submit" class="mm-btn mm-btn--primary">Analyze Food</button>
+        <button type="button" class="mm-btn mm-btn--secondary" id="clearBtn">Clear Images</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="mm-card" style="grid-column: span 5;">
+    <div class="mm-kpi">
+      <div>
+        <div class="mm-kpi__label">Comparison Result UI</div>
+        <div class="mm-kpi__meta">Visual placeholders for multi-image comparison.</div>
+      </div>
+      <span class="mm-pill">Preview</span>
+    </div>
+
+    <div class="mm-grid" style="margin-top: 12px;">
+      <div class="mm-card" style="grid-column: span 12; box-shadow: none;">
+        <div class="mm-kpi" style="align-items:center;">
+          <div>
+            <div class="mm-kpi__label">Food A</div>
+            <div class="mm-kpi__meta">Calories • Protein • Sugar • Fat • Fiber</div>
+          </div>
+          <span class="mm-pill">Card</span>
+        </div>
+        <div class="mm-chart" style="height: 110px; margin-top: 10px;">Food image + nutrition tiles</div>
+      </div>
+
+      <div class="mm-card" style="grid-column: span 12; box-shadow: none;">
+        <div class="mm-kpi" style="align-items:center;">
+          <div>
+            <div class="mm-kpi__label">Food B</div>
+            <div class="mm-kpi__meta">Calories • Protein • Sugar • Fat • Fiber</div>
+          </div>
+          <span class="mm-pill">Card</span>
+        </div>
+        <div class="mm-chart" style="height: 110px; margin-top: 10px;">Food image + nutrition tiles</div>
+      </div>
+
+      <div class="mm-card" style="grid-column: span 12; border-color: rgba(22,163,74,0.22); background: rgba(22,163,74,0.05); box-shadow: none;">
+        <div class="mm-kpi" style="align-items:center;">
+          <div>
+            <div class="mm-kpi__label">Best Choice to Eat</div>
+            <div class="mm-kpi__meta">Reasoning: lower sugar + higher protein, fits your daily target.</div>
+          </div>
+          <span class="mm-pill mm-pill--good">Recommended</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const input = document.getElementById('image-input');
+  const drop = document.getElementById('dropzone');
+  const fileCount = document.getElementById('fileCount');
+  const clearBtn = document.getElementById('clearBtn');
+
+  function updateCount() {
+    const n = input.files ? input.files.length : 0;
+    fileCount.textContent = n ? `${n} file${n > 1 ? 's' : ''} selected` : 'No files selected';
+  }
+
+  ['dragenter','dragover'].forEach(evt => {
+    drop.addEventListener(evt, e => {
+      e.preventDefault();
+      drop.classList.add('drag');
+    });
+  });
+  ['dragleave','drop'].forEach(evt => {
+    drop.addEventListener(evt, e => {
+      e.preventDefault();
+      drop.classList.remove('drag');
+    });
+  });
+  drop.addEventListener('drop', e => {
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+      updateCount();
+    }
+  });
+  input.addEventListener('change', updateCount);
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    updateCount();
+  });
+  updateCount();
+</script>
+{% endblock %}
+
