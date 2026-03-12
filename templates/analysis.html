@@ -1,36 +1,38 @@
 {% extends "base.html" %}
-
+{% load static %}
 {% block head_title %}Analysis — MacroMate{% endblock %}
-
 {% block content %}
 <div class="mm-pagehead">
   <div>
-    <h1 class="mm-title">Nutrition Insights & Analysis</h1>
-    <p class="mm-subtitle">Actionable, calm insights generated from your food logs. This page is designed to scale into deeper AI + analytics features.</p>
+    <h1 class="mm-title">Nutrition Insights &amp; Analysis</h1>
+    <p class="mm-subtitle">Actionable insights generated from your food logs over the last 7 days.</p>
   </div>
 </div>
 
 <section class="mm-grid">
+
   <div class="mm-card" style="grid-column: span 7;">
     <div class="mm-kpi">
       <div>
         <div class="mm-kpi__label">Macronutrient Patterns</div>
-        <div class="mm-kpi__meta">“The diet shows a balanced distribution of carbohydrates, protein, and fat across most meals.”</div>
+        <div class="mm-kpi__meta">Weekly breakdown of protein, carbs, and fat intake.</div>
       </div>
-      <span class="mm-pill mm-pill--good">Balanced</span>
+      <span class="mm-pill mm-pill--{% if macro_status == 'Balanced' %}good{% else %}warn{% endif %}">{{ macro_status
+        }}</span>
     </div>
-    <div class="mm-chart mm-chart--tall" style="margin-top: 12px;">Macronutrient pattern visualization (placeholder)</div>
+    <div style="position:relative;height:240px;margin-top:12px;"><canvas id="macroPatternChart"></canvas></div>
   </div>
 
   <div class="mm-card" style="grid-column: span 5;">
     <div class="mm-kpi">
       <div>
         <div class="mm-kpi__label">Sugar Intake Analysis</div>
-        <div class="mm-kpi__meta">“Sugar intake spikes significantly during night meals, which may affect long-term weight maintenance.”</div>
+        <div class="mm-kpi__meta">Avg daily sugar: {{ avg_daily_sugar }}g</div>
       </div>
-      <span class="mm-pill mm-pill--warn">Warning</span>
+      <span class="mm-pill mm-pill--{% if sugar_status == 'Warning' %}warn{% else %}good{% endif %}">{{ sugar_status
+        }}</span>
     </div>
-    <div class="mm-chart" style="margin-top: 12px;">Sugar spikes by time-of-day (placeholder)</div>
+    <div style="position:relative;height:180px;margin-top:12px;"><canvas id="sugarChart"></canvas></div>
   </div>
 
   <div class="mm-card" style="grid-column: span 7;">
@@ -44,26 +46,26 @@
     <div class="mm-grid" style="margin-top: 12px;">
       <div class="mm-card" style="grid-column: span 4; box-shadow: none;">
         <div class="mm-kpi__label">Vitamin C</div>
-        <div class="mm-kpi__meta">Likely low • add citrus/berries</div>
+        <div class="mm-kpi__meta">{{ vitamin_c_tip }}</div>
         <div class="mm-mini" style="margin-top: 10px;">
-          <div class="mm-mini__bar"><span style="--w: 38%"></span></div>
-          <div class="mm-mini__value">38%</div>
+          <div class="mm-mini__bar"><span style="--w: {{ vitamin_c_pct }}%"></span></div>
+          <div class="mm-mini__value">{{ vitamin_c_pct }}%</div>
         </div>
       </div>
       <div class="mm-card" style="grid-column: span 4; box-shadow: none;">
         <div class="mm-kpi__label">Fiber</div>
-        <div class="mm-kpi__meta">Moderate • add legumes/oats</div>
+        <div class="mm-kpi__meta">{{ fiber_tip }}</div>
         <div class="mm-mini" style="margin-top: 10px;">
-          <div class="mm-mini__bar"><span style="--w: 46%"></span></div>
-          <div class="mm-mini__value">46%</div>
+          <div class="mm-mini__bar"><span style="--w: {{ fiber_pct }}%"></span></div>
+          <div class="mm-mini__value">{{ fiber_pct }}%</div>
         </div>
       </div>
       <div class="mm-card" style="grid-column: span 4; box-shadow: none;">
         <div class="mm-kpi__label">Sodium</div>
-        <div class="mm-kpi__meta">Potentially high • monitor snacks</div>
+        <div class="mm-kpi__meta">{{ sodium_tip }}</div>
         <div class="mm-mini" style="margin-top: 10px;">
-          <div class="mm-mini__bar"><span style="--w: 72%"></span></div>
-          <div class="mm-mini__value">High</div>
+          <div class="mm-mini__bar"><span style="--w: {{ sodium_bar }}%"></span></div>
+          <div class="mm-mini__value">{{ sodium_status }}</div>
         </div>
       </div>
     </div>
@@ -80,14 +82,37 @@
     <div class="mm-grid" style="margin-top: 12px;">
       <div class="mm-card" style="grid-column: span 12; box-shadow: none;">
         <div class="mm-kpi__label">Total calories vs target</div>
-        <div class="mm-chart" style="height: 120px; margin-top: 10px;">Weekly total calories vs target (placeholder)</div>
+        <div style="position:relative;height:140px;margin-top:10px;"><canvas id="weeklyCalChart"></canvas></div>
       </div>
       <div class="mm-card" style="grid-column: span 12; box-shadow: none;">
         <div class="mm-kpi__label">Nutrient balance overview</div>
-        <div class="mm-chart" style="height: 120px; margin-top: 10px;">Balance panel (placeholder)</div>
+        <div style="position:relative;height:140px;margin-top:10px;"><canvas id="balanceChart"></canvas></div>
       </div>
     </div>
   </div>
+
 </section>
 {% endblock %}
 
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% comment %}
+Chart data is passed via a JSON script tag to avoid auto-formatter
+corrupting Django template tags inside JavaScript code.
+{% endcomment %}
+<script id="analysis-data" type="application/json">
+{
+  "labels": {{ chart_labels|safe }},
+  "protein": {{ chart_protein|safe }},
+  "carbs": {{ chart_carbs|safe }},
+  "fat": {{ chart_fat|safe }},
+  "sugar": {{ chart_sugar|safe }},
+  "calories": {{ chart_calories|safe }},
+  "dailyGoal": {{ daily_goal }},
+  "protPct": {{ prot_pct }},
+  "carbPct": {{ carb_pct }},
+  "fatPct": {{ fat_pct }}
+}
+</script>
+<script src="{% static 'js/analysis_charts.js' %}"></script>
+{% endblock %}

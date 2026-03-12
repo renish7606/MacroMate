@@ -4,30 +4,32 @@
 {% block head_title %}Result — MacroMate{% endblock %}
 
 {% block content %}
-<section class="card result-card" style="max-width: 1000px; margin: 0 auto;">
+<section class="mm-card" style="max-width: 1000px; margin: 0 auto;">
 
-  <a href="{% url 'reset_analysis' %}" class="back-link" style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; color: #64748b; text-decoration: none; font-weight: 500;">
+  <a href="{% url 'reset_analysis' %}" class="mm-btn mm-btn--secondary" style="margin-bottom: 24px;">
     ← Analyze another
   </a>
 
   <div class="result-grid" style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 32px; align-items: start;">
-  <style>
-    @media (max-width: 768px) {
-      .result-grid {
-        grid-template-columns: 1fr !important;
+    <style>
+      @media (max-width: 768px) {
+        .result-grid {
+          grid-template-columns: 1fr !important;
+        }
+
+        .image-wrap {
+          position: static !important;
+        }
       }
-      .image-wrap {
-        position: static !important;
-      }
-    }
-  </style>
+    </style>
 
     <!-- IMAGE -->
     <div class="image-wrap" style="position: sticky; top: 20px;">
       {% if image %}
-        <img src="{{ image }}" alt="Uploaded food image" class="food-img" style="width: 100%; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); object-fit: cover;">
+      <img src="{{ image }}" alt="Uploaded food image"
+        style="width: 100%; border-radius: var(--radius); border: 1px solid var(--border); object-fit: cover;">
       {% else %}
-        <p class="muted">No image available</p>
+      <p class="muted">No image available</p>
       {% endif %}
     </div>
 
@@ -35,143 +37,108 @@
     <div class="result-body" style="display: flex; flex-direction: column; gap: 24px;">
 
       <div>
-        <h2 class="result-title" style="font-size: 32px; font-weight: 700; margin: 0 0 8px 0; color: #0f172a;">{{ food }}</h2>
-        
+        <h2 class="result-title">{{ food }}</h2>
+
         {% if needs_confirmation %}
-          <div class="confidence-badge" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; color: #92400e; font-size: 14px; font-weight: 600; margin-bottom: 16px;">
-            <span>⚠️</span>
-            <span>Low Confidence ({{ confidence }}%)</span>
-          </div>
+        <div class="confidence-badge--low">⚠ Low Confidence ({{ confidence }}%)</div>
         {% else %}
-          <div class="confidence-badge" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #d1fae5; border: 1px solid #10b981; border-radius: 8px; color: #065f46; font-size: 14px; font-weight: 600; margin-bottom: 16px;">
-            <span>✓</span>
-            <span>High Confidence ({{ confidence }}%)</span>
-          </div>
+        <div class="confidence-badge--high">✓ High Confidence ({{ confidence }}%)</div>
         {% endif %}
       </div>
 
       {% if needs_confirmation %}
-      <div class="confirm-box" style="padding: 20px; background: #fffbeb; border: 2px solid #fbbf24; border-radius: 12px;">
-        <p class="warning" style="margin: 0 0 16px 0; color: #92400e; font-weight: 600; font-size: 15px;">
+      <div class="mm-card" style="border-color: rgba(251,191,36,0.28); background: rgba(251,191,36,0.06);">
+        <p style="margin: 0 0 16px 0; color: var(--warn); font-weight: 600; font-size: 15px;">
           ⚠️ We couldn't confidently recognize this food. Please confirm the food name below.
         </p>
 
-        <input
-          type="text"
-          id="manual-food-input"
-          placeholder="Type food name (e.g. pizza)"
-          value="{{ suggested_hint }}"
-          autofocus
-          oninput="searchFood(this.value)"
-          style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px; margin-bottom: 12px; transition: border-color 0.2s;"
-          onfocus="this.style.borderColor='#fbbf24';"
-          onblur="this.style.borderColor='#e5e7eb';"
-        >
+        <input type="text" id="manual-food-input" placeholder="Type food name (e.g. pizza)" value="{{ suggested_hint }}"
+          autofocus oninput="searchFood(this.value)" class="mm-input" style="margin-bottom: 12px;">
 
-        <div id="food-results" class="food-results" style="display: flex; flex-wrap: gap: 8px;"></div>
+        <div id="food-results" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
       </div>
       {% endif %}
 
       {% if calories is not None %}
-        <div class="calorie-card" style="padding: 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; color: white; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);">
-          <p style="margin: 0 0 20px 0; font-size: 14px; opacity: 0.9; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Estimated Nutrition</p>
-          <div class="macro-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
-            <div class="macro" style="text-align: center;">
-              <span style="display: block; font-size: 13px; opacity: 0.9; margin-bottom: 6px;">Calories</span>
-              <strong style="font-size: 28px; font-weight: 700;">{{ calories }}</strong>
-              <span style="font-size: 14px; opacity: 0.8;"> kcal</span>
-            </div>
-            <div class="macro" style="text-align: center;">
-              <span style="display: block; font-size: 13px; opacity: 0.9; margin-bottom: 6px;">Protein</span>
-              <strong style="font-size: 28px; font-weight: 700;">{{ protein }}</strong>
-              <span style="font-size: 14px; opacity: 0.8;"> g</span>
-            </div>
-            <div class="macro" style="text-align: center;">
-              <span style="display: block; font-size: 13px; opacity: 0.9; margin-bottom: 6px;">Carbs</span>
-              <strong style="font-size: 28px; font-weight: 700;">{{ carbs }}</strong>
-              <span style="font-size: 14px; opacity: 0.8;"> g</span>
-            </div>
-            <div class="macro" style="text-align: center;">
-              <span style="display: block; font-size: 13px; opacity: 0.9; margin-bottom: 6px;">Fat</span>
-              <strong style="font-size: 28px; font-weight: 700;">{{ fat }}</strong>
-              <span style="font-size: 14px; opacity: 0.8;"> g</span>
-            </div>
-          </div>
+      <div class="nutrition-panel">
+        <div class="nutrition-panel__item">
+          <span class="nutrition-panel__label">Calories</span>
+          <span class="nutrition-panel__num">{{ calories }}</span>
+          <span class="nutrition-panel__unit">kcal</span>
         </div>
+        <div class="nutrition-panel__item">
+          <span class="nutrition-panel__label">Protein</span>
+          <span class="nutrition-panel__num">{{ protein }}</span>
+          <span class="nutrition-panel__unit">g</span>
+        </div>
+        <div class="nutrition-panel__item">
+          <span class="nutrition-panel__label">Carbs</span>
+          <span class="nutrition-panel__num">{{ carbs }}</span>
+          <span class="nutrition-panel__unit">g</span>
+        </div>
+        <div class="nutrition-panel__item">
+          <span class="nutrition-panel__label">Fat</span>
+          <span class="nutrition-panel__num">{{ fat }}</span>
+          <span class="nutrition-panel__unit">g</span>
+        </div>
+      </div>
       {% elif not needs_confirmation %}
-        <div class="nutrition-unavailable" style="padding: 20px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 12px; text-align: center;">
-          <p style="margin: 0; color: #64748b; font-size: 15px;">
-            ℹ️ Nutrition data not available for this food. Use the portion input below to calculate nutrition.
-          </p>
-        </div>
+      <div class="mm-card" style="text-align: center;">
+        <p style="margin: 0; color: var(--text-muted); font-size: 15px;">
+          ℹ️ Nutrition data not available for this food. Use the portion input below to calculate nutrition.
+        </p>
+      </div>
       {% endif %}
 
-      <div class="chat-card" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-        <div class="chat-header" style="padding: 16px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; font-size: 15px;">
-          🤖 MacroMate Assistant
-        </div>
-
-        <div class="chat-body" id="chat-messages" style="padding: 20px; max-height: 300px; overflow-y: auto; background: #f9fafb;">
-          <div class="chat-bubble bot" style="background: white; padding: 14px 18px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 12px; line-height: 1.6;">
+      <div class="result-chat">
+        <div class="result-chat__header">🤖 MacroMate Assistant</div>
+        <div class="result-chat__body" id="chat-messages">
+          <div class="mm-bubble mm-bubble--bot">
             I detected <b>{{ food }}</b> 🍽️<br>
             How much did you eat?<br>
-            <small style="color: #64748b; font-size: 13px;">e.g. 2 slices, half pizza, 1.5 scoops</small>
+            <small style="color: var(--text-muted); font-size: 12px;">e.g. 2 slices, half pizza, 1.5 scoops</small>
           </div>
         </div>
-
-        <div class="chat-input-wrapper" style="padding: 16px 20px; background: white; border-top: 1px solid #e5e7eb; display: flex; gap: 12px;">
-          <input
-            type="text"
-            id="portionInput"
-            placeholder="Type your portion (e.g. 2 slices)"
-            style="flex: 1; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px; transition: border-color 0.2s;"
-            onfocus="this.style.borderColor='#667eea';"
-            onblur="this.style.borderColor='#e5e7eb';"
-            onkeypress="if(event.key==='Enter') sendPortion();"
-          />
-          <button onclick="sendPortion()" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s; font-size: 16px;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">➤</button>
+        <div class="result-chat__footer">
+          <input type="text" id="portionInput" class="mm-input" placeholder="Type your portion (e.g. 2 slices)"
+            onkeypress="if(event.key==='Enter') sendPortion();" />
+          <button onclick="sendPortion()" class="mm-btn mm-btn--primary">➤</button>
         </div>
       </div>
 
       <!-- RELATED FOODS -->
       {% if related %}
-      <div class="topk" style="padding: 20px; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb;">
-        <h4 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #0f172a;">Related Foods</h4>
+      <div class="mm-card">
+        <h4 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: var(--text);">Related Foods</h4>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
           {% for item in related %}
-            {% if item.food %}
-              <span style="display: inline-block; padding: 8px 14px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; color: #0f172a;">
-                {{ item.food|title }} <span style="color: #64748b; font-size: 12px;">({{ item.confidence }}%)</span>
-              </span>
-            {% else %}
-              <span style="display: inline-block; padding: 8px 14px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; color: #0f172a;">
-                {{ item|title }}
-              </span>
-            {% endif %}
+          {% if item.food %}
+          <span class="mm-pill">
+            {{ item.food|title }} <span style="color: var(--text-muted); font-size: 12px;">({{ item.confidence
+              }}%)</span>
+          </span>
+          {% else %}
+          <span class="mm-pill">{{ item|title }}</span>
+          {% endif %}
           {% endfor %}
         </div>
       </div>
       {% endif %}
 
       <!-- ACTIONS -->
-      <div class="actions" style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <a href="{% url 'reset_analysis' %}" class="btn-secondary" style="padding: 12px 24px; background: white; border: 2px solid #e5e7eb; border-radius: 8px; color: #0f172a; font-weight: 600; text-decoration: none; transition: all 0.2s; display: inline-block;" onmouseover="this.style.borderColor='#cbd5e1'; this.style.background='#f9fafb';" onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='white';">Try another image</a>
-
-        <button class="btn-primary" onclick="saveMeal()" id="saveBtn" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s; {% if calories is None %}opacity: 0.6;{% endif %}" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'" title="{% if calories is None %}Enter portion size first to calculate nutrition{% else %}Save this meal to your history{% endif %}">
-          Save to history
-        </button>
-
-        <form action="{% url 'download_history_pdf' %}" method="get" style="margin: 0;">
-          <button type="submit" class="btn-primary" style="padding: 12px 24px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-            Download Report
-          </button>
+      <div class="mm-actions" style="margin-top: 8px;">
+        <a href="{% url 'reset_analysis' %}" class="mm-btn mm-btn--secondary">Try another image</a>
+        <button class="mm-btn mm-btn--primary" onclick="saveMeal()" id="saveBtn">Save to history</button>
+        <form action="{% url 'download_history_pdf' %}" method="get" style="margin:0;">
+          <button type="submit" class="mm-btn mm-btn--secondary">Download Report</button>
         </form>
       </div>
 
     </div>
   </div>
 
-  <footer class="foot" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center; color: #64748b; font-size: 13px;">
+  <footer
+    style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 13px;">
     Results may vary depending on image quality and cuisine.
   </footer>
 
@@ -180,173 +147,165 @@
 
 {% block extra_js %}
 <script>
-const CSV_FOODS = {{ csv_foods|safe }};
+  const CSV_FOODS = {{ csv_foods| safe }};
 
-/* ---------- AUTOCOMPLETE ---------- */
-function searchFood(query) {
-  const results = document.getElementById("food-results");
-  results.innerHTML = "";
+  /* ---------- AUTOCOMPLETE ---------- */
+  function searchFood(query) {
+    const results = document.getElementById("food-results");
+    results.innerHTML = "";
 
-  if (query.length < 2) return;
+    if (query.length < 2) return;
 
-  const matches = CSV_FOODS
-    .filter(f => f.toLowerCase().includes(query.toLowerCase()))
-    .slice(0, 8);
+    const matches = CSV_FOODS
+      .filter(f => f.toLowerCase().includes(query.toLowerCase()))
+      .slice(0, 8);
 
-  matches.forEach(food => {
-    const btn = document.createElement("button");
-    btn.textContent = food;
-    btn.className = "food-option";
-    btn.style.cssText = "padding: 10px 16px; margin: 4px; background: white; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s;";
-    btn.onmouseover = function() { this.style.borderColor = '#667eea'; this.style.background = '#f0f4ff'; };
-    btn.onmouseout = function() { this.style.borderColor = '#e5e7eb'; this.style.background = 'white'; };
-    btn.onclick = () => confirmFood(food);
-    results.appendChild(btn);
-  });
-}
-
-/* ---------- CONFIRM FOOD ---------- */
-function confirmFood(food) {
-  fetch("{% url 'confirm_food' %}", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "same-origin",
-    body: JSON.stringify({ food })
-  }).then(() => {
-    window.location.href = "{% url 'upload_food' %}";
-  });
-}
-
-// Store calculated nutrition from portion input
-let calculatedNutrition = null;
-
-/* ---------- SAVE MEAL ---------- */
-function saveMeal() {
-  // Use calculated nutrition if available, otherwise use template values
-  const nutrition = calculatedNutrition || {
-    calories: "{{ calories|default:'' }}",
-    protein: "{{ protein|default:0 }}",
-    carbs: "{{ carbs|default:0 }}",
-    fat: "{{ fat|default:0 }}"
-  };
-
-  // Validate that we have calories
-  if (!nutrition.calories || nutrition.calories === "None" || nutrition.calories === "") {
-    alert("⚠️ Please enter a portion size first to calculate nutrition, or ensure nutrition data is available.");
-    return;
+    matches.forEach(food => {
+      const btn = document.createElement("button");
+      btn.textContent = food;
+      btn.className = "mm-btn mm-btn--secondary";
+      btn.style.cssText = "padding: 8px 14px; font-size: 13px;";
+      btn.onclick = () => confirmFood(food);
+      results.appendChild(btn);
+    });
   }
 
-  const formData = new URLSearchParams({
-    food: "{{ food }}",
-    calories: nutrition.calories.toString(),
-    protein: (nutrition.protein || 0).toString(),
-    carbs: (nutrition.carbs || 0).toString(),
-    fat: (nutrition.fat || 0).toString(),
-    image: "{{ image|default:'' }}"
-  });
+  /* ---------- CONFIRM FOOD ---------- */
+  function confirmFood(food) {
+    fetch("{% url 'confirm_food' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ food })
+    }).then(() => {
+      window.location.href = "{% url 'upload_food' %}";
+    });
+  }
 
-  fetch("{% url 'save_to_history' %}", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "X-CSRFToken": "{{ csrf_token }}"
-    },
-    body: formData
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  // Store calculated nutrition from portion input
+  let calculatedNutrition = null;
+
+  /* ---------- SAVE MEAL ---------- */
+  function saveMeal() {
+    // Use calculated nutrition if available, otherwise use template values
+    const nutrition = calculatedNutrition || {
+      calories: "{{ calories|default:'' }}",
+      protein: "{{ protein|default:0 }}",
+      carbs: "{{ carbs|default:0 }}",
+      fat: "{{ fat|default:0 }}"
+    };
+
+    // Validate that we have calories
+    if (!nutrition.calories || nutrition.calories === "None" || nutrition.calories === "") {
+      alert("⚠️ Please enter a portion size first to calculate nutrition, or ensure nutrition data is available.");
+      return;
     }
-    return response.json();
-  })
-  .then(data => {
-    if (data.success) {
-      alert("✅ " + (data.message || "Saved to history successfully!"));
-      window.location.href = "/history/";
-    } else {
-      alert("❌ Failed to save: " + (data.error || "Unknown error"));
-    }
-  })
-  .catch(err => {
-    console.error("Save error:", err);
-    alert("❌ Error saving meal: " + err.message);
-  });
-}
 
-/* ---------- CHAT INTERFACE ---------- */
-function sendPortion() {
-  const input = document.getElementById("portionInput");
-  const text = input.value.trim();
-  if (!text) return;
+    const formData = new URLSearchParams({
+      food: "{{ food }}",
+      calories: nutrition.calories.toString(),
+      protein: (nutrition.protein || 0).toString(),
+      carbs: (nutrition.carbs || 0).toString(),
+      fat: (nutrition.fat || 0).toString(),
+      image: "{{ image|default:'' }}"
+    });
 
-  const chat = document.getElementById("chat-messages");
+    fetch("{% url 'save_to_history' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: formData
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          alert("✅ " + (data.message || "Saved to history successfully!"));
+          window.location.href = "/history/";
+        } else {
+          alert("❌ Failed to save: " + (data.error || "Unknown error"));
+        }
+      })
+      .catch(err => {
+        console.error("Save error:", err);
+        alert("❌ Error saving meal: " + err.message);
+      });
+  }
 
-  // show user message
-  chat.innerHTML += `
-    <div class="chat-bubble user" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 18px; border-radius: 12px; margin-bottom: 12px; margin-left: auto; max-width: 80%; text-align: right; line-height: 1.6; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      ${text}
-    </div>
+  /* ---------- CHAT INTERFACE ---------- */
+  function sendPortion() {
+    const input = document.getElementById("portionInput");
+    const text = input.value.trim();
+    if (!text) return;
+
+    const chat = document.getElementById("chat-messages");
+
+    // show user message
+    chat.innerHTML += `
+    <div class="mm-bubble mm-bubble--user">${text}</div>
   `;
 
-  input.value = "";
-  chat.scrollTop = chat.scrollHeight;
+    input.value = "";
+    chat.scrollTop = chat.scrollHeight;
 
-  // send to backend
-  fetch("/api/parse-portion/", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": "{{ csrf_token }}"
-    },
-    body: JSON.stringify({
-      food: "{{ food }}",
-      portion_text: text
+    // send to backend
+    fetch("/api/parse-portion/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: JSON.stringify({
+        food: "{{ food }}",
+        portion_text: text
+      })
     })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.error) {
-      chat.innerHTML += `
-        <div class="chat-bubble bot" style="background: #fef2f2; padding: 14px 18px; border-radius: 12px; margin-bottom: 12px; line-height: 1.6; color: #991b1b;">
-          ⚠️ ${data.error}
-        </div>
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          chat.innerHTML += `
+        <div class="mm-bubble mm-bubble--warn">⚠️ ${data.error}</div>
       `;
-    } else {
-      // Store calculated nutrition for saving
-      calculatedNutrition = {
-        calories: data.calories,
-        protein: data.protein,
-        carbs: data.carbs,
-        fat: data.fat
-      };
-      
-      chat.innerHTML += `
-        <div class="chat-bubble bot" style="background: white; padding: 14px 18px; border-radius: 12px; margin-bottom: 12px; line-height: 1.6; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        } else {
+          // Store calculated nutrition for saving
+          calculatedNutrition = {
+            calories: data.calories,
+            protein: data.protein,
+            carbs: data.carbs,
+            fat: data.fat
+          };
+
+          chat.innerHTML += `
+        <div class="mm-bubble mm-bubble--bot">
           🍽 <b>Calculated Nutrition:</b><br>
           Calories: ${data.calories} kcal<br>
           Protein: ${data.protein} g<br>
           Carbs: ${data.carbs} g<br>
           Fat: ${data.fat} g<br>
-          <small style="color: #10b981; margin-top: 8px; display: block;">✓ Ready to save! Click "Save to history" button.</small>
+          <small style="color: var(--accent); margin-top: 8px; display: block;">✓ Ready to save! Click "Save to history" button.</small>
         </div>
       `;
-      
-      // Show save button if it was hidden
-      const saveBtn = document.querySelector('button[onclick="saveMeal()"]');
-      if (saveBtn && saveBtn.style.display === 'none') {
-        saveBtn.style.display = 'inline-block';
-      }
-    }
-    chat.scrollTop = chat.scrollHeight;
-  })
-  .catch(err => {
-    chat.innerHTML += `
-      <div class="chat-bubble bot" style="background: #fef2f2; padding: 14px 18px; border-radius: 12px; margin-bottom: 12px; line-height: 1.6; color: #991b1b;">
-        ⚠️ Error calculating nutrition. Please try again.
-      </div>
+
+          // Show save button if it was hidden
+          const saveBtn = document.querySelector('button[onclick="saveMeal()"]');
+          if (saveBtn && saveBtn.style.display === 'none') {
+            saveBtn.style.display = 'inline-block';
+          }
+        }
+        chat.scrollTop = chat.scrollHeight;
+      })
+      .catch(err => {
+        chat.innerHTML += `
+      <div class="mm-bubble mm-bubble--warn">⚠️ Error calculating nutrition. Please try again.</div>
     `;
-    chat.scrollTop = chat.scrollHeight;
-  });
-}
+        chat.scrollTop = chat.scrollHeight;
+      });
+  }
 </script>
 {% endblock %}

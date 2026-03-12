@@ -34,45 +34,45 @@
     <h4>Meals & Snacks</h4>
 
     {% if meals %}
-      <div class="meals-list">
-        {% for meal in meals %}
-          <div class="meal-item">
-            <div class="meal-info">
-              <h5 class="meal-name">{{ meal.food }}</h5>
-              <p class="meal-time">{{ meal.created_at|time:"H:i" }}</p>
-            </div>
+    <div class="meals-list">
+      {% for meal in meals %}
+      <div class="meal-item">
+        <div class="meal-info">
+          <h5 class="meal-name">{{ meal.food }}</h5>
+          <p class="meal-time">{{ meal.created_at|time:"H:i" }}</p>
+        </div>
 
-            <div class="meal-calories">
-              <span class="calories">{{ meal.calories }}</span>
-              <span class="kcal-small">kcal</span>
-            </div>
+        <div class="meal-calories">
+          <span class="calories">{{ meal.calories }}</span>
+          <span class="kcal-small">kcal</span>
+        </div>
 
-            <!-- ✅ MACROS -->
-            <div class="macro-grid mini">
-              <div class="macro">
-                <span>P</span>
-                <strong>{{ meal.protein }} g</strong>
-              </div>
-              <div class="macro">
-                <span>C</span>
-                <strong>{{ meal.carbs }} g</strong>
-              </div>
-              <div class="macro">
-                <span>F</span>
-                <strong>{{ meal.fat }} g</strong>
-              </div>
-            </div>
-
+        <!-- ✅ MACROS -->
+        <div class="macro-grid mini">
+          <div class="macro">
+            <span>P</span>
+            <strong>{{ meal.protein }} g</strong>
           </div>
-        {% endfor %}
+          <div class="macro">
+            <span>C</span>
+            <strong>{{ meal.carbs }} g</strong>
+          </div>
+          <div class="macro">
+            <span>F</span>
+            <strong>{{ meal.fat }} g</strong>
+          </div>
+        </div>
+
       </div>
+      {% endfor %}
+    </div>
     {% else %}
-      <div class="empty-state">
-        <div class="empty-icon">🍽️</div>
-        <h4>No meals logged today</h4>
-        <p class="muted">Start by analyzing your first food item!</p>
-        <a href="{% url 'upload_food' %}" class="btn-primary">Analyze Food</a>
-      </div>
+    <div class="empty-state">
+      <div class="empty-icon">🍽️</div>
+      <h4>No meals logged today</h4>
+      <p class="muted">Start by analyzing your first food item!</p>
+      <a href="{% url 'upload_food' %}" class="btn-primary">Analyze Food</a>
+    </div>
     {% endif %}
   </div>
 
@@ -98,9 +98,9 @@
       <div class="stat-item">
         <span class="stat-number">
           {% if meal_count %}
-            {% widthratio total_calories meal_count 1 %}
+          {% widthratio total_calories meal_count 1 %}
           {% else %}
-            0
+          0
           {% endif %}
         </span>
         <span class="stat-label">Avg / Meal</span>
@@ -125,7 +125,7 @@
       </div>
     </div>
   </div>
-{% endif %}
+  {% endif %}
 
 
   <!-- Actions -->
@@ -133,9 +133,9 @@
     <a href="{% url 'upload_food' %}" class="btn-secondary">Analyze New Food</a>
 
     {% if meals %}
-      <button class="btn-primary" onclick="exportHistory()">
-        Export Today's Log
-      </button>
+    <a href="{% url 'download_today_pdf' %}" class="mm-btn mm-btn--primary">
+      Export Today's Log (PDF)
+    </a>
     {% endif %}
   </div>
 
@@ -145,40 +145,4 @@
 
 </section>
 
-{% endblock %}
-
-{% block extra_js %}
-<script>
-  function exportHistory() {
-    const meals = [
-      {% for meal in meals %}
-      {
-        food: "{{ meal.food|escapejs }}",
-        calories: {{ meal.calories }},
-        protein: {{ meal.protein }},
-        carbs: {{ meal.carbs }},
-        fat: {{ meal.fat }},
-        time: "{{ meal.created_at|time:'H:i' }}"
-      }{% if not forloop.last %},{% endif %}
-      {% endfor %}
-    ];
-
-    const exportData = {
-      date: "{{ today_date|date:'Y-m-d' }}",
-      totalCalories: {{ total_calories|default:0 }},
-      mealCount: {{ meal_count|default:0 }},
-      meals: meals
-    };
-
-    const blob = new Blob(
-      [JSON.stringify(exportData, null, 2)],
-      { type: "application/json" }
-    );
-
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "macromate_history_{{ today_date|date:'Y-m-d' }}.json";
-    a.click();
-  }
-</script>
 {% endblock %}

@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}Comparison — MacroMate{% endblock %}
+
+{% block content %}
+<div class="mm-pagehead">
+    <div>
+        <h1 class="mm-title">Food Comparison</h1>
+        <p class="mm-subtitle">
+            Nutritional breakdown for {{ foods|length }} food{{ foods|length|pluralize }}.
+            The best choice is highlighted in green.
+        </p>
+    </div>
+    <div class="mm-actions">
+        <a href="{% url 'upload_food' %}" class="mm-btn mm-btn--secondary">← Try again</a>
+    </div>
+</div>
+
+<!-- ── COMPARISON CARDS ── -->
+<section class="mm-grid" style="margin-bottom: 20px;">
+    {% for item in foods %}
+    <div class="mm-card comp-card {% if item.is_best %}comp-card--best{% endif %}"
+        style="grid-column: span {% if foods|length == 1 %}12{% elif foods|length == 2 %}6{% else %}4{% endif %};">
+
+        {% if item.is_best %}
+        <div class="comp-best-badge">⭐ Best Choice</div>
+        {% endif %}
+
+        <!-- Food image if from upload path -->
+        {% if item.image %}
+        <img src="{{ item.image }}" alt="{{ item.name }}"
+            style="width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px;">
+        {% endif %}
+
+        <!-- Food name + confidence -->
+        <div style="margin-bottom: 12px;">
+            <h2 style="font-size:22px;font-weight:700;color:var(--text);margin:0 0 6px 0;
+                 font-family:var(--font-body);">{{ item.name }}</h2>
+            {% if item.confidence %}
+            <span class="confidence-badge--{% if item.confidence >= 80 %}high{% else %}low{% endif %}">
+                {% if item.confidence >= 80 %}✓{% else %}⚠{% endif %}
+                {{ item.confidence }}% confidence
+            </span>
+            {% endif %}
+        </div>
+
+        <!-- Nutrition panel -->
+        <div class="nutrition-panel">
+            <div class="nutrition-panel__item">
+                <span class="nutrition-panel__label">Calories</span>
+                <span class="nutrition-panel__num
+          {% if item.is_best %} nutrition-panel__num--best{% endif %}">
+                    {{ item.calories }}
+                </span>
+                <span class="nutrition-panel__unit">kcal</span>
+            </div>
+            <div class="nutrition-panel__item">
+                <span class="nutrition-panel__label">Protein</span>
+                <span class="nutrition-panel__num">{{ item.protein }}</span>
+                <span class="nutrition-panel__unit">g</span>
+            </div>
+            <div class="nutrition-panel__item">
+                <span class="nutrition-panel__label">Carbs</span>
+                <span class="nutrition-panel__num">{{ item.carbs }}</span>
+                <span class="nutrition-panel__unit">g</span>
+            </div>
+            <div class="nutrition-panel__item">
+                <span class="nutrition-panel__label">Fat</span>
+                <span class="nutrition-panel__num">{{ item.fat }}</span>
+                <span class="nutrition-panel__unit">g</span>
+            </div>
+        </div>
+
+        <!-- Per-food save button -->
+        <button class="mm-btn mm-btn--secondary" style="margin-top:14px;width:100%;font-size:13px;" onclick="saveSingleMeal('{{ item.name }}', {{ item.calories }},
+                                   {{ item.protein }}, {{ item.carbs }},
+                                   {{ item.fat }}, '{{ item.image|default:'' }}')">
+            Save {{ item.name }} to history
+        </button>
+    </div>
+    {% endfor %}
+</section>
+
+<!-- ── ASSISTANT GREETING ── -->
+<section class="mm-grid">
+    <div class="mm-card" style="grid-column: span 8;">
+        <div class="result-chat">
+            <div class="result-chat__header">🤖 MacroMate Assistant</div>
+            <div class="result-chat__body" id="chat-messages">
+                <div class="mm-bubble mm-bubble--bot">
+                    I detected <b>{{ food_names_display }}</b> 🍽️<br>
+                    {% if foods|length > 1 %}
+                    Here's how they compare — <b>{{ best_food.name }}</b> is your best bet
+                    ({{ best_reason }}).<br>
+                    {% endif %}
+                    <small style="color:var(--text-muted);font-size:12px;">
+                        Ask me anything about these foods, or type a portion size for any of them.
+                    </small>
+                </div>
+            </div>
+            <div class="result-chat__footer">
+                <input type="text" id="portionInput" class="mm-input"
+                    placeholder="e.g. '2 samosas' or ask a nutrition question"
+                    onkeypress="if(event.key==='Enter') sendPortion();" />
+                <button onclick="sendPortion()" class="mm-btn mm-btn--primary">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary panel -->
+    <div class="mm-card" style="grid-column: span 4;">
+        <div class="mm-kpi__label" style="margin-bottom: 12px;">Quick Comparison</div>
+        {% for item in foods %}
+        <div style="margin-bottom: 14px; padding-bottom: 14px;
+                border-bottom: 1px solid var(--border);">
+            <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:6px;">
+                {{ item.name }}
+                {% if item.is_best %}<span class="mm-pill mm-pill--good"
+                    style="font-size:10px;margin-left:6px;">Best</span>{% endif %}
+            </div>
+            <div class="mm-mini">
+                <div class="mm-mini__bar">
+                    <span style="--w:{{ item.calorie_pct }}%"></span>
+                </div>
+                <div class="mm-mini__value" style="font-family:var(--font-display);">
+                    {{ item.calories }} kcal
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- ── ACTIONS ── -->
+<div class="mm-actions" style="margin-top: 20px;">
+    <a href="{% url 'upload_food' %}" class="mm-btn mm-btn--secondary">Analyze New Food</a>
+    <form action="{% url 'download_history_pdf' %}" method="get" style="margin:0;">
+        <button type="submit" class="mm-btn mm-btn--secondary">Download Report</button>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const CSRF = '{{ csrf_token }}';
+
+    /* ── SAVE SINGLE FOOD ── */
+    async function saveSingleMeal(food, calories, protein, carbs, fat, image) {
+        const form = new URLSearchParams({ food, calories, protein, carbs, fat, image });
+        const res = await fetch("{% url 'save_to_history' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': CSRF },
+            body: form,
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(`✅ ${food} saved to history!`);
+        } else {
+            alert(`❌ ${data.error}`);
+        }
+    }
+
+    /* ── PORTION CHAT ── */
+    async function sendPortion() {
+        const input = document.getElementById('portionInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        const chat = document.getElementById('chat-messages');
+        chat.innerHTML += `
+    <div class="mm-bubble mm-bubble--user">${text}</div>`;
+        input.value = '';
+        chat.scrollTop = chat.scrollHeight;
+
+        // Try portion parsing for the first food
+        const firstFood = '{{ foods.0.name }}';
+        const res = await fetch('/api/parse-portion/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ food: firstFood, portion_text: text }),
+        });
+        const data = await res.json();
+
+        if (data.error) {
+            chat.innerHTML += `<div class="mm-bubble mm-bubble--warn">⚠️ ${data.error}</div>`;
+        } else {
+            chat.innerHTML += `
+      <div class="mm-bubble mm-bubble--bot">
+        🍽 <b>Calculated for ${firstFood}:</b><br>
+        Calories: ${data.calories} kcal<br>
+        Protein: ${data.protein}g · Carbs: ${data.carbs}g · Fat: ${data.fat}g
+      </div>`;
+        }
+        chat.scrollTop = chat.scrollHeight;
+    }
+</script>
+{% endblock %}

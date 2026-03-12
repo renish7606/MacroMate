@@ -15,7 +15,7 @@
     <div class="mm-chat" id="chat">
       <div class="mm-chat__top">
         <span class="mm-pill mm-pill--info">Food-only AI</span>
-        <span class="mm-pill">Demo UI</span>
+        <span class="mm-pill mm-pill--good">Live</span>
       </div>
 
       <div class="mm-chat__body" id="chatBody" aria-live="polite">
@@ -25,7 +25,8 @@
       </div>
 
       <div class="mm-chat__input">
-        <input class="mm-input" id="chatInput" type="text" placeholder="Ask a food or nutrition question (e.g. ‘Is oats good for weight loss?’)" />
+        <input class="mm-input" id="chatInput" type="text"
+          placeholder="Ask a food or nutrition question (e.g. 'How much vitamin C is in 2 apples?')" />
         <button class="mm-btn mm-btn--primary" type="button" id="sendBtn">Send</button>
       </div>
     </div>
@@ -35,65 +36,170 @@
     <div class="mm-kpi">
       <div>
         <div class="mm-kpi__label">Restriction</div>
-        <div class="mm-kpi__meta">If you ask unrelated questions, MacroMate will politely refuse and redirect you to nutrition topics.</div>
+        <div class="mm-kpi__meta">MacroMate only answers food and nutrition questions.
+          Non-food questions get a polite redirect.</div>
       </div>
       <span class="mm-pill mm-pill--warn">Guardrails</span>
     </div>
 
+    <!-- What it CAN answer -->
     <div class="mm-card" style="margin-top: 12px; box-shadow: none;">
-      <div class="mm-kpi__label">Example</div>
-      <div class="mm-kpi__meta" style="margin-top: 8px;">
-        “What is the capital of France?”
-      </div>
-      <div class="mm-pill mm-pill--warn" style="margin-top: 10px;">
-        I’m designed to help only with food and nutrition-related topics.
+      <div class="mm-kpi__label" style="margin-bottom: 10px;">Topics I can answer</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="mm-pill mm-pill--good" style="font-size:11px;">Calories</span>
+        <span class="mm-pill mm-pill--good" style="font-size:11px;">Macros</span>
+        <span class="mm-pill mm-pill--good" style="font-size:11px;">Protein</span>
+        <span class="mm-pill mm-pill--good" style="font-size:11px;">Sugar</span>
+        <span class="mm-pill mm-pill--good" style="font-size:11px;">Fiber</span>
+        <span class="mm-pill mm-pill--good" style="font-size:11px;">Vitamins</span>
+        <span class="mm-pill mm-pill--good" style="font-size:11px;">Meal Planning</span>
+        <span class="mm-pill mm-pill--good" style="font-size:11px;">Weight Loss</span>
+        <span class="mm-pill mm-pill--good" style="font-size:11px;">Indian Foods</span>
+        <span class="mm-pill mm-pill--good" style="font-size:11px;">Diet Tips</span>
+        <span class="mm-pill mm-pill--good" style="font-size:11px;">Healthy Swaps</span>
       </div>
     </div>
+
+    <!-- Clear history button -->
+    <button onclick="clearHistory()" class="mm-btn mm-btn--secondary"
+      style="margin-top: 12px; width: 100%; font-size: 13px;">
+      Clear Chat History
+    </button>
   </div>
 </section>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  const foodKeywords = [
-    'food','nutrition','diet','calorie','calories','macro','macros','protein','carb','carbs','fat','fiber',
-    'vitamin','minerals','health','meal','breakfast','lunch','dinner','snack','weight','gain','loss','maintain',
-    'sugar','salt','sodium','cholesterol','hydration','water','fruits','vegetables'
-  ];
+  // ── STATE ──
+  let isWaiting = false;
 
-  function looksFoodRelated(text) {
-    const t = (text || '').toLowerCase();
-    return foodKeywords.some(k => t.includes(k));
-  }
+  // ── DOM REFS ──
+  const chatBody = document.getElementById('chatBody');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
 
-  function addBubble(text, cls) {
-    const body = document.getElementById('chatBody');
+  // ── RENDER BUBBLE ──
+  function addBubble(text, type) {
+    // type: 'user' | 'bot' | 'warn' | 'loading'
     const div = document.createElement('div');
-    div.className = `mm-bubble ${cls}`;
-    div.textContent = text;
-    body.appendChild(div);
-    body.scrollTop = body.scrollHeight;
-  }
+    div.className = `mm-bubble mm-bubble--${type}`;
 
-  function send() {
-    const input = document.getElementById('chatInput');
-    const q = (input.value || '').trim();
-    if (!q) return;
-    addBubble(q, 'mm-bubble--user');
-    input.value = '';
-
-    if (!looksFoodRelated(q)) {
-      addBubble("I’m designed to help only with food and nutrition-related topics.", 'mm-bubble--warn');
-      return;
+    if (type === 'loading') {
+      div.id = 'loadingBubble';
+      div.innerHTML = `
+      <span style="display:inline-flex;gap:4px;align-items:center;">
+        <span class="dot-pulse"></span>
+        <span class="dot-pulse" style="animation-delay:0.15s"></span>
+        <span class="dot-pulse" style="animation-delay:0.30s"></span>
+      </span>`;
+    } else {
+      // Convert newlines to <br>, keep plain text safe
+      div.innerHTML = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
     }
 
-    addBubble("Thanks — this is a demo UI. Wire this to your backend/LLM later for real answers.", 'mm-bubble--bot');
+    chatBody.appendChild(div);
+    chatBody.scrollTop = chatBody.scrollHeight;
+    return div;
   }
 
-  document.getElementById('sendBtn').addEventListener('click', send);
-  document.getElementById('chatInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') send();
+  // ── REMOVE LOADING BUBBLE ──
+  function removeLoading() {
+    const el = document.getElementById('loadingBubble');
+    if (el) el.remove();
+  }
+
+  // ── SEND MESSAGE ──
+  async function send() {
+    if (isWaiting) return;
+
+    const text = (chatInput.value || '').trim();
+    if (!text) return;
+
+    chatInput.value = '';
+    isWaiting = true;
+    sendBtn.disabled = true;
+    sendBtn.style.opacity = '0.5';
+
+    // Show user bubble
+    addBubble(text, 'user');
+
+    // Show typing indicator
+    addBubble('', 'loading');
+
+    try {
+      const res = await fetch("{% url 'assistant_chat' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({ message: text }),
+      });
+
+      removeLoading();
+
+      if (!res.ok) {
+        addBubble('Network error. Please try again.', 'warn');
+        return;
+      }
+
+      const data = await res.json();
+      const reply = data.reply || 'No response received.';
+
+      // Check if it's a refusal (non-food)
+      const isRefusal = data.is_refusal || reply.startsWith("I'm MacroMate");
+      addBubble(reply, isRefusal ? 'warn' : 'bot');
+
+    } catch (err) {
+      removeLoading();
+      addBubble('Connection error. Check your internet connection.', 'warn');
+    } finally {
+      isWaiting = false;
+      sendBtn.disabled = false;
+      sendBtn.style.opacity = '1';
+      chatInput.focus();
+    }
+  }
+
+  // ── CLEAR HISTORY ──
+  async function clearHistory() {
+    await fetch("{% url 'clear_assistant_history' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    });
+    chatBody.innerHTML = '';
+    addBubble('Chat history cleared. Ask me anything about food or nutrition!', 'bot');
+  }
+
+  // ── EVENT LISTENERS ──
+  sendBtn.addEventListener('click', send);
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
   });
+
+  // ── TYPING INDICATOR ANIMATION (CSS injected) ──
+  const style = document.createElement('style');
+  style.textContent = `
+  @keyframes dotPulse {
+    0%, 80%, 100% { opacity: 0.2; transform: scale(0.85); }
+    40%           { opacity: 1;   transform: scale(1.1);  }
+  }
+  .dot-pulse {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent, #a3e635);
+    animation: dotPulse 1.2s ease-in-out infinite;
+  }
+`;
+  document.head.appendChild(style);
 </script>
 {% endblock %}
-

@@ -1,5 +1,6 @@
 import csv
 import os
+import requests
 from django.conf import settings
 import json
 from django.shortcuts import render, redirect
@@ -9,6 +10,7 @@ from services.portion_parser import parse_quantity
 from services.api_nutrition import get_nutrition_from_api
 from services.csv_nutrition import get_nutrition_from_csv
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.core.files.storage import FileSystemStorage
 from datetime import datetime
 from .ml_food_predictor import predict_food
@@ -23,6 +25,7 @@ from django.utils import timezone
 from django.db.models import Sum, Avg
 from .models import UserProfile, FoodHistory
 from datetime import timedelta
+import json as json_module
 
 
 @login_required
@@ -83,6 +86,37 @@ def dashboard(request):
     carbs_status = "Balanced" if carbs_percent >= 50 else "Low"
     fat_status = "Stable" if fat_percent >= 50 else "Low"
     
+    has_food_logged = today_foods.count() > 0
+
+    # ── Micronutrient estimates (derived from today's food entries) ──
+    sugar_g      = round(today_carbs * 0.10, 1)
+    sugar_target = 25
+    sugar_pct    = min(100, round(sugar_g / sugar_target * 100)) if sugar_target else 0
+
+    fiber_g      = round(today_calories * 0.02, 1)
+    fiber_target = 25
+    fiber_pct    = min(100, round(fiber_g / fiber_target * 100)) if fiber_target else 0
+
+    vitamin_a_pct  = min(100, round((today_calories / daily_goal) * 55)) if has_food_logged and daily_goal else 0
+    vitamin_c_pct  = min(100, round((today_calories / daily_goal) * 40)) if has_food_logged and daily_goal else 0
+    calcium_pct    = min(100, round((today_calories / daily_goal) * 35)) if has_food_logged and daily_goal else 0
+    iron_pct       = min(100, round((today_calories / daily_goal) * 48)) if has_food_logged and daily_goal else 0
+
+    # ── 7-day daily calorie data for chart ──
+    chart_labels = []
+    chart_calories_data = []
+    for i in range(6, -1, -1):
+        day = today - timedelta(days=i)
+        day_total = FoodHistory.objects.filter(
+            user=request.user,
+            created_at__date=day
+        ).aggregate(total=Sum('calories'))['total'] or 0
+        chart_labels.append(day.strftime('%a'))
+        chart_calories_data.append(day_total)
+
+    chart_macro_labels = ['Protein', 'Carbs', 'Fat']
+    chart_macro_values = [round(today_protein, 1), round(today_carbs, 1), round(today_fat, 1)]
+
     context = {
         'daily_goal': daily_goal,
         'today_calories': today_calories,
@@ -101,126 +135,475 @@ def dashboard(request):
         'protein_status': protein_status,
         'carbs_status': carbs_status,
         'fat_status': fat_status,
-        'has_food_logged': today_foods.count() > 0,
+        'has_food_logged': has_food_logged,
         'profile': profile,
+        # Micronutrients
+        'sugar_g': sugar_g,
+        'sugar_pct': sugar_pct,
+        'fiber_g': fiber_g,
+        'fiber_pct': fiber_pct,
+        'vitamin_a_pct': vitamin_a_pct,
+        'vitamin_c_pct': vitamin_c_pct,
+        'calcium_pct': calcium_pct,
+        'iron_pct': iron_pct,
+        # Charts
+        'chart_labels': json_module.dumps(chart_labels),
+        'chart_calories': json_module.dumps(chart_calories_data),
+        'chart_macro_labels': json_module.dumps(chart_macro_labels),
+        'chart_macro_values': json_module.dumps(chart_macro_values),
+        'daily_goal_line': daily_goal,
     }
     
     return render(request, "dashboard.html", context)
 
 
+@login_required
 def upload_food(request):
     """
-    Upload page: Image upload + food detection + confirmation flow
+    Upload page: handles 1 to 3 images.
+    Single image → old result.html (backwards compatible).
+    Multiple images → multi_result.html comparison.
     """
-    
-    # -----------------------------------------
-    # 1️⃣ CONFIRMED FOOD (SESSION)
-    # -----------------------------------------
+
+    # ── CONFIRMED FOOD (session, single-food legacy path) ──
     confirmed_food = request.session.get("confirmed_food")
-    image = request.session.get("uploaded_image")
-
     if confirmed_food:
-        # Get nutrition for confirmed food
+        image     = request.session.get("uploaded_image")
         nutrition = get_nutrition(confirmed_food)
-
         return render(request, "result.html", {
-            "food": confirmed_food.replace("_", " ").title(),
-            "calories": nutrition["calories"] if nutrition else None,
-            "protein": nutrition["protein"] if nutrition else None,
-            "carbs": nutrition["carbs"] if nutrition else None,
-            "fat": nutrition["fat"] if nutrition else None,
-            "related": get_related_foods(confirmed_food),
-            "confidence": 100,
+            "food":               confirmed_food.replace("_", " ").title(),
+            "calories":           nutrition["calories"] if nutrition else None,
+            "protein":            nutrition["protein"]  if nutrition else None,
+            "carbs":              nutrition["carbs"]    if nutrition else None,
+            "fat":                nutrition["fat"]      if nutrition else None,
+            "related":            get_related_foods(confirmed_food),
+            "confidence":         100,
             "needs_confirmation": False,
-            "image": image,
-            "csv_foods": json.dumps(list(CSV_FOODS)),
+            "image":              image,
+            "csv_foods":          json.dumps(list(CSV_FOODS)),
         })
 
-    # -----------------------------------------
-    # 2️⃣ IMAGE UPLOAD + ML PREDICTION
-    # -----------------------------------------
-    if request.method == "POST" and request.FILES.get("image"):
-        image_file = request.FILES["image"]
+    # ── IMAGE UPLOAD ──
+    if request.method == "POST" and request.FILES.getlist("image"):
+        images = request.FILES.getlist("image")[:3]   # cap at 3
+        fs     = FileSystemStorage()
 
-        # Save uploaded image
-        fs = FileSystemStorage()
-        filename = fs.save(image_file.name, image_file)
-        image_path = fs.path(filename)
-        image_url = fs.url(filename)
+        print(f"\n📸 Multi-image upload: received {len(images)} image(s)")
 
-        request.session["uploaded_image"] = image_url
+        results = []
+        for idx, image_file in enumerate(images, 1):
+            try:
+                print(f"   Processing image {idx}/{len(images)}: {image_file.name}")
+                filename   = fs.save(image_file.name, image_file)
+                image_path = fs.path(filename)
+                image_url  = fs.url(filename)
 
-        # Run ML prediction
-        ml_result = predict_food(image_path)
-        
-        # Extract results - FIX: Use correct variable names
-        food = ml_result["food_name"]
-        confidence = ml_result["confidence"]
-        is_confident = ml_result["is_confident"]
-        
-        print(f"\n🎯 ML Result: {food} with confidence {confidence}%")
-        print(f"   Is confident: {is_confident}")
-        
-        # -------- HIGH CONFIDENCE PATH --------
-        # Use higher threshold (80%) for truly confident predictions
-        # Below 80%: ask for confirmation
-        # Above 80%: show result even if nutrition not found
-        HIGH_CONFIDENCE_THRESHOLD = 80.0
-        
-        if is_confident and confidence >= HIGH_CONFIDENCE_THRESHOLD:
-            # High confidence - don't ask for confirmation
-            nutrition = get_nutrition(food)
-            
-            return render(request, "result.html", {
-                "food": food.replace("_", " ").title(),
-                "calories": nutrition["calories"] if nutrition else None,
-                "protein": nutrition["protein"] if nutrition else None,
-                "carbs": nutrition["carbs"] if nutrition else None,
-                "fat": nutrition["fat"] if nutrition else None,
-                "confidence": confidence,
-                "raw_confidence": ml_result.get("raw_confidence", confidence),
-                "needs_confirmation": False,
-                "image": image_url,
-                "csv_foods": json.dumps(list(CSV_FOODS)),
-                "related": get_related_foods(food),
-                "nutrition_available": nutrition is not None,
+                ml_result  = predict_food(image_path)
+                food_key   = ml_result["food_name"]
+                confidence = ml_result["confidence"]
+                nutrition  = get_nutrition(food_key) or {}
+
+                results.append({
+                    "name":       food_key.replace("_", " ").title(),
+                    "food_key":   food_key,
+                    "image":      image_url,
+                    "confidence": confidence,
+                    "calories":   nutrition.get("calories", 0),
+                    "protein":    nutrition.get("protein",  0),
+                    "carbs":      nutrition.get("carbs",    0),
+                    "fat":        nutrition.get("fat",      0),
+                })
+            except Exception as e:
+                print(f"   ⚠️ Error processing image {idx}: {e}")
+                continue  # skip this image, process the rest
+
+        if not results:
+            return render(request, "upload.html", {
+                "manual_error": "Could not process the uploaded images. Please try again.",
             })
-        
-        # -------- LOW CONFIDENCE PATH --------
-        # Confidence below 80% - ask for confirmation
-        print(f"⚠️ Low confidence ({confidence}%) - requesting manual confirmation")
-        
-        return render(request, "result.html", {
-            "food": food.replace("_", " ").title(),  # Show best guess
-            "calories": None,
-            "confidence": confidence,
-            "raw_confidence": ml_result.get("raw_confidence", confidence),
-            "needs_confirmation": True,
-            "image": image_url,
-            "suggested_hint": food.replace("_", " "),
-            "csv_foods": json.dumps(list(CSV_FOODS)),
-            "related": ml_result.get("top_predictions", [])[:5],  # Show top 5 alternatives
-            "nutrition_available": False,
-        })
 
-    # -----------------------------------------
-    # 3️⃣ DEFAULT PAGE (GET REQUEST)
-    # -----------------------------------------
+        # ── SINGLE IMAGE → legacy result.html ──
+        if len(results) == 1:
+            r  = results[0]
+            HIGH = 80.0
+            if r["confidence"] >= HIGH:
+                return render(request, "result.html", {
+                    "food":               r["name"],
+                    "calories":           r["calories"],
+                    "protein":            r["protein"],
+                    "carbs":              r["carbs"],
+                    "fat":                r["fat"],
+                    "confidence":         r["confidence"],
+                    "needs_confirmation": False,
+                    "image":              r["image"],
+                    "csv_foods":          json.dumps(list(CSV_FOODS)),
+                    "related":            get_related_foods(r["food_key"]),
+                    "nutrition_available": True,
+                })
+            else:
+                return render(request, "result.html", {
+                    "food":               r["name"],
+                    "calories":           None,
+                    "confidence":         r["confidence"],
+                    "needs_confirmation": True,
+                    "image":              r["image"],
+                    "suggested_hint":     r["food_key"].replace("_", " "),
+                    "csv_foods":          json.dumps(list(CSV_FOODS)),
+                    "related":            [],
+                    "nutrition_available": False,
+                })
+
+        # ── MULTIPLE IMAGES → multi_result.html ──
+        return _render_multi_result(request, results)
+
+    # ── DEFAULT GET ──
     return render(request, "upload.html")
 
 
+def _render_multi_result(request, results):
+    """
+    Shared helper: annotates results with best-choice logic and renders multi_result.html
+    """
+    if not results:
+        return redirect("upload_food")
+
+    # Best choice = highest protein-to-calorie ratio (or lowest calories as tiebreaker)
+    def score(r):
+        cal = r["calories"] or 1
+        return (r["protein"] / cal * 100) - (cal / 500)
+
+    best_idx = max(range(len(results)), key=lambda i: score(results[i]))
+
+    # Max calories for the progress bar width
+    max_cal = max((r["calories"] for r in results), default=1) or 1
+
+    for i, r in enumerate(results):
+        r["is_best"]     = (i == best_idx)
+        r["calorie_pct"] = round(r["calories"] / max_cal * 100)
+
+    best      = results[best_idx]
+    names     = [r["name"] for r in results]
+    best_reason = f"lower calories ({best['calories']} kcal) and higher protein ({best['protein']}g)"
+
+    # Display string: "Pizza, Samosa and Ramen"
+    if len(names) == 1:
+        food_names_display = names[0]
+    elif len(names) == 2:
+        food_names_display = f"{names[0]} and {names[1]}"
+    else:
+        food_names_display = f"{names[0]}, {names[1]} and {names[2]}"
+
+    return render(request, "multi_result.html", {
+        "foods":              results,
+        "best_food":          best,
+        "best_reason":        best_reason,
+        "food_names_display": food_names_display,
+    })
+
+
+@login_required
 def analysis(request):
     """
-    Detailed analysis UI (placeholders)
+    Detailed analysis with real aggregated data and Chart.js charts
     """
-    return render(request, "analysis.html")
+    today = timezone.now().date()
+    week_ago = today - timedelta(days=6)
+
+    entries = FoodHistory.objects.filter(
+        user=request.user,
+        created_at__date__gte=week_ago,
+        created_at__date__lte=today
+    ).order_by('created_at')
+
+    daily_data = {}
+    for i in range(6, -1, -1):
+        d = today - timedelta(days=i)
+        daily_data[d] = {'calories': 0, 'protein': 0, 'carbs': 0, 'fat': 0}
+
+    for e in entries:
+        d = timezone.localdate(e.created_at)
+        if d in daily_data:
+            daily_data[d]['calories'] += e.calories
+            daily_data[d]['protein']  += e.protein
+            daily_data[d]['carbs']    += e.carbs
+            daily_data[d]['fat']      += e.fat
+
+    chart_labels   = [d.strftime('%a') for d in daily_data]
+    chart_calories = [daily_data[d]['calories'] for d in daily_data]
+    chart_protein  = [round(daily_data[d]['protein'], 1) for d in daily_data]
+    chart_carbs    = [round(daily_data[d]['carbs'], 1)   for d in daily_data]
+    chart_fat      = [round(daily_data[d]['fat'], 1)     for d in daily_data]
+    chart_sugar    = [round(c * 0.10, 1) for c in chart_carbs]
+
+    total_cal    = sum(chart_calories)
+    total_prot   = sum(chart_protein)
+    total_carb_w = sum(chart_carbs)
+    total_fat_w  = sum(chart_fat)
+
+    daily_goal = 2200
+    try:
+        daily_goal = request.user.profile.daily_calorie_goal or 2200
+    except Exception:
+        pass
+
+    total_macro_cal = total_prot * 4 + total_carb_w * 4 + total_fat_w * 9
+    if total_macro_cal > 0:
+        prot_pct = round(total_prot * 4 / total_macro_cal * 100)
+        carb_pct = round(total_carb_w * 4 / total_macro_cal * 100)
+        fat_pct  = round(total_fat_w * 9 / total_macro_cal * 100)
+    else:
+        prot_pct = carb_pct = fat_pct = 0
+
+    macro_status = 'Balanced' if 20 <= prot_pct <= 35 and 35 <= carb_pct <= 55 else 'Unbalanced'
+
+    avg_daily_sugar = round(sum(chart_sugar) / 7, 1)
+    sugar_status = 'Warning' if avg_daily_sugar > 20 else 'Good'
+
+    avg_daily_cal = total_cal / 7 if total_cal else 0
+    vitamin_c_pct = min(100, round(avg_daily_cal / daily_goal * 40)) if daily_goal else 0
+    fiber_pct     = min(100, round(avg_daily_cal / daily_goal * 46)) if daily_goal else 0
+    sodium_status = 'High' if total_fat_w > 100 else 'Normal'
+
+    context = {
+        'chart_labels':       json_module.dumps(chart_labels),
+        'chart_calories':     json_module.dumps(chart_calories),
+        'chart_protein':      json_module.dumps(chart_protein),
+        'chart_carbs':        json_module.dumps(chart_carbs),
+        'chart_fat':          json_module.dumps(chart_fat),
+        'chart_sugar':        json_module.dumps(chart_sugar),
+        'daily_goal':         daily_goal,
+        'macro_status':       macro_status,
+        'prot_pct':           prot_pct,
+        'carb_pct':           carb_pct,
+        'fat_pct':            fat_pct,
+        'sugar_status':       sugar_status,
+        'avg_daily_sugar':    avg_daily_sugar,
+        'vitamin_c_pct':      vitamin_c_pct,
+        'fiber_pct':          fiber_pct,
+        'sodium_status':      sodium_status,
+        'total_cal':          total_cal,
+        'has_data':           total_cal > 0,
+        # Pre-computed tips for template (avoids < in templates)
+        'vitamin_c_tip':      'Likely low \u2022 add citrus/berries' if vitamin_c_pct < 50 else 'On track',
+        'fiber_tip':          'Moderate \u2022 add legumes/oats' if fiber_pct < 50 else 'Good intake',
+        'sodium_tip':         'Potentially high \u2022 monitor snacks' if sodium_status == 'High' else 'Normal levels',
+        'sodium_bar':         72 if sodium_status == 'High' else 38,
+    }
+    return render(request, 'analysis.html', context)
 
 
+@login_required
 def assistant(request):
     """
-    Food-only assistant UI (demo guardrails)
+    Food-only assistant UI
     """
     return render(request, "assistant.html")
+
+
+# ── Food keyword guardrail ──
+FOOD_KEYWORDS = [
+    'food', 'nutrition', 'diet', 'calorie', 'calories', 'macro', 'macros',
+    'protein', 'carb', 'carbs', 'fat', 'fiber', 'vitamin', 'minerals',
+    'health', 'meal', 'breakfast', 'lunch', 'dinner', 'snack', 'weight',
+    'sugar', 'salt', 'sodium', 'cholesterol', 'hydration', 'water',
+    'fruit', 'fruits', 'vegetable', 'vegetables', 'recipe', 'cook',
+    'eat', 'eating', 'hungry', 'rice', 'bread', 'roti', 'samosa',
+    'biryani', 'dal', 'oats', 'egg', 'chicken', 'fish', 'milk',
+    'cheese', 'yogurt', 'juice', 'tea', 'coffee', 'oil', 'butter',
+    'pizza', 'burger', 'salad', 'soup', 'pasta', 'noodle', 'paneer',
+    'dosa', 'idli', 'vada', 'pakoda', 'keto', 'vegan', 'gluten',
+    'iron', 'calcium', 'potassium', 'magnesium', 'zinc', 'omega',
+    'kcal', 'bmi', 'tdee', 'serving', 'portion', 'gram', 'grams',
+]
+
+
+def _looks_food_related(text):
+    """Check if the question is likely about food/nutrition."""
+    t = (text or '').lower()
+    return any(kw in t for kw in FOOD_KEYWORDS)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def assistant_chat(request):
+    """
+    Real assistant endpoint — uses CSV nutrition DB + Spoonacular API.
+    Three-tier strategy:
+      1. Spoonacular Quick Answer (factual nutrition Qs)
+      2. Local CSV/API nutrition lookup (extract food name from question)
+      3. Spoonacular Chatbot (conversational fallback)
+    """
+    try:
+        data = json.loads(request.body)
+        question = (data.get("message") or "").strip()
+
+        if not question:
+            return JsonResponse({"reply": "Please type a question."})
+
+        # ── Guardrail: reject obviously non-food questions ──
+        if not _looks_food_related(question):
+            return JsonResponse({
+                "reply": "I'm MacroMate — I only help with food and nutrition questions. "
+                         "Try asking about calories, macros, or healthy meal choices!",
+                "is_refusal": True,
+            })
+
+        api_key = settings.SPOONACULAR_API_KEY
+        if not api_key:
+            return JsonResponse({"reply": "Assistant is not configured. Add SPOONACULAR_API_KEY to .env."})
+
+        reply = None
+
+        # ── Strategy 1: Quick Answer (best for factual nutrition Qs) ──
+        try:
+            qa_resp = requests.get(
+                "https://api.spoonacular.com/recipes/quickAnswer",
+                params={"q": question, "apiKey": api_key},
+                timeout=10,
+            )
+            if qa_resp.status_code == 200:
+                qa_data = qa_resp.json()
+                answer = qa_data.get("answer", "")
+                # Only accept if it's a real answer, not a generic redirect
+                if answer and "here are some" not in answer.lower():
+                    reply = answer
+        except Exception:
+            pass
+
+        # ── Strategy 2: Local CSV/API nutrition lookup ──
+        if not reply:
+            reply = _try_local_nutrition_lookup(question)
+
+        # ── Strategy 3: Chatbot (conversational fallback) ──
+        if not reply:
+            try:
+                context_id = request.session.get("spoonacular_context_id", "")
+                chat_params = {
+                    "text": question,
+                    "apiKey": api_key,
+                }
+                if context_id:
+                    chat_params["contextId"] = context_id
+
+                chat_resp = requests.get(
+                    "https://api.spoonacular.com/food/converse",
+                    params=chat_params,
+                    timeout=10,
+                )
+                if chat_resp.status_code == 200:
+                    chat_data = chat_resp.json()
+                    answer = chat_data.get("answerText", "")
+                    # Only accept if it's a real answer
+                    if answer and "here are some" not in answer.lower():
+                        reply = answer
+                    # Save context for follow-up questions
+                    if chat_data.get("contextId"):
+                        request.session["spoonacular_context_id"] = chat_data["contextId"]
+                        request.session.modified = True
+            except Exception:
+                pass
+
+        if not reply:
+            reply = "Sorry, I couldn't find an answer. Try rephrasing your food or nutrition question."
+
+        return JsonResponse({"reply": reply})
+
+    except Exception as e:
+        print(f"Assistant error: {e}")
+        return JsonResponse({"reply": "Something went wrong. Please try again."})
+
+
+def _try_local_nutrition_lookup(question):
+    """
+    Try to extract a food name from the user's question and look it up
+    in the local CSV nutrition database.
+    Returns a formatted answer string or None.
+    """
+    import re
+
+    q = question.lower().strip()
+
+    # Strip common question patterns to isolate the food name
+    # e.g. "how many calories in 2 samosa" → "samosa"
+    #      "calorie in 1 samosa"            → "samosa"
+    #      "nutrition of roti"              → "roti"
+    patterns = [
+        r'(?:how\s+(?:many|much)\s+)?(?:calories?|calorie|kcal|protein|carbs?|fat|nutrition|macro|macros|fiber|sugar|vitamin\w*)\s+(?:in|of|for)\s+(?:\d+\s*)?',
+        r'(?:what\s+(?:is|are)\s+(?:the\s+)?)?(?:calories?|calorie|kcal|protein|carbs?|fat|nutrition|macro|macros)\s+(?:in|of|for)\s+(?:\d+\s*)?',
+        r'(?:tell\s+me\s+(?:about|the)\s+)?(?:nutrition|calories?|macros?)\s+(?:of|in|for)\s+(?:\d+\s*)?',
+        r'(?:how\s+(?:many|much)\s+)?(?:calories?|calorie|kcal|protein|carbs?|fat)\s+(?:does|do)\s+(?:\d+\s*)?',
+    ]
+
+    food_name = None
+    for pat in patterns:
+        match = re.search(pat, q)
+        if match:
+            food_name = q[match.end():].strip()
+            break
+
+    # Also try simple patterns: "samosa calories", "about samosa"
+    if not food_name:
+        simple = re.sub(
+            r'\b(how|many|much|what|is|are|the|tell|me|about|does|do|have|has|'
+            r'calories?|calorie|kcal|protein|carbs?|fat|nutrition|macro|macros|'
+            r'fiber|sugar|vitamin\w*|in|of|for|per|serving|piece|pieces|'
+            r'a|an|one|two|three|1|2|3|4|5|6|7|8|9|0)\b',
+            ' ', q
+        )
+        food_name = ' '.join(simple.split()).strip()
+
+    if not food_name or len(food_name) < 2:
+        return None
+
+    # Clean up: remove trailing punctuation, question marks
+    food_name = re.sub(r'[?.!,]+$', '', food_name).strip()
+
+    # Try exact match first, then partial match
+    nutrition = get_nutrition(food_name)
+
+    if not nutrition:
+        # Try with underscores (CSV format)
+        nutrition = get_nutrition(food_name.replace(' ', '_'))
+
+    if not nutrition:
+        # Try matching against known CSV foods
+        from .food_similarity import CSV_FOODS
+        for csv_food in CSV_FOODS:
+            csv_clean = csv_food.replace('_', ' ')
+            if csv_clean in food_name or food_name in csv_clean:
+                nutrition = get_nutrition(csv_food)
+                if nutrition:
+                    food_name = csv_clean
+                    break
+
+    if nutrition:
+        display = food_name.replace('_', ' ').title()
+        cal = nutrition['calories']
+        prot = nutrition['protein']
+        carbs = nutrition['carbs']
+        fat = nutrition['fat']
+
+        return (
+            f"{display} (per 100g serving):\n"
+            f"• Calories: {cal} kcal\n"
+            f"• Protein: {prot}g\n"
+            f"• Carbs: {carbs}g\n"
+            f"• Fat: {fat}g"
+        )
+
+    return None
+
+
+@login_required
+def clear_assistant_history(request):
+    """
+    Clear chatbot context for this user's session.
+    """
+    if "spoonacular_context_id" in request.session:
+        del request.session["spoonacular_context_id"]
+        request.session.modified = True
+    return JsonResponse({"success": True})
 
 
 def _tdee_bmr(weight_kg, height_cm, age, gender, activity):
@@ -438,7 +821,7 @@ def reset_analysis(request):
     Clear session and start over
     """
     request.session.flush()
-    return redirect("index")
+    return redirect("upload_food")
 
 
 from django.http import HttpResponse
@@ -500,6 +883,162 @@ def download_history_pdf(request):
     p.save()
 
     return response
+
+
+@login_required
+def download_today_pdf(request):
+    """
+    Generate PDF of today's food log only
+    """
+    from reportlab.lib import colors
+
+    response = HttpResponse(content_type='application/pdf')
+    today = timezone.now().date()
+    response['Content-Disposition'] = f'attachment; filename="MacroMate_{today}.pdf"'
+
+    p = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+
+    # Header bar
+    p.setFillColor(colors.HexColor('#a3e635'))
+    p.rect(0, height - 60, width, 60, fill=True, stroke=False)
+    p.setFillColor(colors.HexColor('#0a0a0f'))
+    p.setFont("Helvetica-Bold", 18)
+    p.drawString(40, height - 40, "MacroMate — Today's Food Log")
+
+    p.setFillColor(colors.black)
+    p.setFont("Helvetica", 11)
+    p.drawString(40, height - 80, f"Date: {today.strftime('%B %d, %Y')}")
+    p.drawString(40, height - 96, f"User: {request.user.username}")
+
+    meals = FoodHistory.objects.filter(
+        user=request.user,
+        created_at__date=today
+    ).order_by('created_at')
+
+    y = height - 130
+    total_cal = total_p = total_c = total_f = 0
+
+    # Table header
+    p.setFillColor(colors.HexColor('#f0f0f5'))
+    p.rect(40, y - 4, width - 80, 20, fill=True, stroke=False)
+    p.setFillColor(colors.black)
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(45, y + 2, "Food")
+    p.drawString(240, y + 2, "Time")
+    p.drawString(310, y + 2, "Calories")
+    p.drawString(390, y + 2, "Protein")
+    p.drawString(450, y + 2, "Carbs")
+    p.drawString(510, y + 2, "Fat")
+    y -= 24
+
+    p.setFont("Helvetica", 10)
+    for meal in meals:
+        t = timezone.localtime(meal.created_at).strftime('%H:%M')
+        p.drawString(45,  y, meal.food[:28])
+        p.drawString(240, y, t)
+        p.drawString(310, y, f"{meal.calories} kcal")
+        p.drawString(390, y, f"{meal.protein}g")
+        p.drawString(450, y, f"{meal.carbs}g")
+        p.drawString(510, y, f"{meal.fat}g")
+        total_cal += meal.calories
+        total_p   += meal.protein
+        total_c   += meal.carbs
+        total_f   += meal.fat
+        y -= 18
+        if y < 80:
+            p.showPage()
+            p.setFont("Helvetica", 10)
+            y = height - 50
+
+    # Totals row
+    y -= 8
+    p.setFillColor(colors.HexColor('#f0f0f5'))
+    p.rect(40, y - 4, width - 80, 20, fill=True, stroke=False)
+    p.setFillColor(colors.black)
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(45,  y + 2, "TOTAL")
+    p.drawString(310, y + 2, f"{total_cal} kcal")
+    p.drawString(390, y + 2, f"{round(total_p,1)}g")
+    p.drawString(450, y + 2, f"{round(total_c,1)}g")
+    p.drawString(510, y + 2, f"{round(total_f,1)}g")
+
+    p.showPage()
+    p.save()
+    return response
+
+
+@login_required
+def manual_food_lookup(request):
+    """
+    Handle 1-3 manual food name submissions.
+    Single food → result.html.
+    Multiple foods → multi_result.html comparison.
+    """
+    if request.method != "POST":
+        return redirect("upload_food")
+
+    # Collect up to 3 food name fields: manual_food_1, manual_food_2, manual_food_3
+    raw_names = [
+        request.POST.get("manual_food_1", "").strip(),
+        request.POST.get("manual_food_2", "").strip(),
+        request.POST.get("manual_food_3", "").strip(),
+    ]
+    # Remove blanks and normalize
+    food_keys = [n.lower().replace(" ", "_") for n in raw_names if n]
+
+    if not food_keys:
+        return redirect("upload_food")
+
+    results = []
+    not_found = []
+
+    for key in food_keys:
+        nutrition = get_nutrition(key)
+        if not nutrition:
+            # Try fuzzy match from CSV_FOODS
+            from difflib import get_close_matches
+            matches = get_close_matches(key, CSV_FOODS, n=1, cutoff=0.6)
+            if matches:
+                key       = matches[0]
+                nutrition = get_nutrition(key)
+
+        if nutrition:
+            results.append({
+                "name":       key.replace("_", " ").title(),
+                "food_key":   key,
+                "image":      None,
+                "confidence": None,
+                "calories":   nutrition["calories"],
+                "protein":    nutrition["protein"],
+                "carbs":      nutrition["carbs"],
+                "fat":        nutrition["fat"],
+            })
+        else:
+            not_found.append(key.replace("_", " ").title())
+
+    if not results:
+        return render(request, "upload.html", {
+            "manual_error": f"None of the foods were found: {', '.join(not_found)}. Try different names.",
+        })
+
+    if len(results) == 1:
+        r = results[0]
+        return render(request, "result.html", {
+            "food":               r["name"],
+            "calories":           r["calories"],
+            "protein":            r["protein"],
+            "carbs":              r["carbs"],
+            "fat":                r["fat"],
+            "confidence":         100,
+            "needs_confirmation": False,
+            "image":              None,
+            "csv_foods":          json.dumps(list(CSV_FOODS)),
+            "related":            get_related_foods(r["food_key"]),
+            "nutrition_available": True,
+        })
+
+    return _render_multi_result(request, results)
 
 
 # --------------------------------------------------

@@ -13,117 +13,372 @@
 
 <section class="mm-grid">
   <div class="mm-card" style="grid-column: span 7;">
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" id="uploadForm">
       {% csrf_token %}
 
-      <label class="mm-drop" for="image-input" id="dropzone">
-        <input id="image-input" type="file" name="image" accept="image/*" hidden multiple />
+      <!-- Hidden real input — we'll rebuild its FileList from our accumulated array -->
+      <input id="image-input" type="file" name="image" accept="image/*" hidden multiple />
 
+      <label class="mm-drop" id="dropzone"
+        onclick="document.getElementById('filePicker').click(); event.preventDefault();">
         <div class="mm-drop__icon" aria-hidden="true">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M7 10l5-5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12 5v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" />
+            <path d="M7 10l5-5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <path d="M12 5v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
         </div>
 
         <div class="mm-drop__title">Drag & drop food images</div>
         <div class="mm-drop__hint">
-          Upload <b>1 to 3</b> images for comparison (demo UI). Current backend analyzes the first image.
-          Supported: JPG/PNG.
+          Upload up to <b>3 food photos</b> to compare their nutrition side-by-side.
+          Click to add images one-by-one, or select multiple at once. Supported: JPG/PNG.
         </div>
         <div class="mm-pill mm-pill--info" id="fileCount">No files selected</div>
       </label>
 
+      <!-- Separate invisible picker so we can accumulate files -->
+      <input id="filePicker" type="file" accept="image/*" hidden multiple />
+
+      <!-- Image previews -->
+      <div id="imagePreview" style="display:none; margin-top:12px; gap:10px; flex-wrap:wrap;"></div>
+
       <div class="mm-actions" style="margin-top: 12px;">
-        <button type="submit" class="mm-btn mm-btn--primary">Analyze Food</button>
+        <button type="submit" class="mm-btn mm-btn--primary" id="analyzeBtn">Analyze Food</button>
         <button type="button" class="mm-btn mm-btn--secondary" id="clearBtn">Clear Images</button>
       </div>
+
+      <!-- Loading indicator -->
+      <div id="uploadLoading" style="display:none; text-align:center; padding:18px 0;">
+        <div
+          style="display:inline-flex; align-items:center; gap:10px; color:var(--accent); font-weight:700; font-size:14px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="animation: spin 1s linear infinite;">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+              stroke-dasharray="50" stroke-dashoffset="20" />
+          </svg>
+          <span id="loadingText">Analyzing images...</span>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- MANUAL FOOD ENTRY CARD (3 slots) -->
+  <div class="mm-card" style="grid-column: span 7; margin-top: 0;">
+    <div class="mm-kpi__label" style="margin-bottom: 4px;">Or compare foods manually</div>
+    <p style="font-size:13px;color:var(--text-muted);margin:0 0 14px 0;">
+      Enter up to 3 food names to compare nutrition side-by-side.
+    </p>
+
+    <form method="post" action="{% url 'manual_food_lookup' %}" id="manualForm" autocomplete="off">
+      {% csrf_token %}
+
+      {% if manual_error %}
+      <p style="color:var(--danger);font-size:13px;margin-bottom:10px;">{{ manual_error }}</p>
+      {% endif %}
+
+      <!-- SLOT 1 -->
+      <div style="position:relative; margin-bottom: 10px;">
+        <label class="mm-label">Food 1 <span style="color:var(--danger)">*</span></label>
+        <input type="text" name="manual_food_1" id="manualFood1" class="mm-input" placeholder="e.g. samosa"
+          oninput="showSuggestions(this, 'suggestions1')" onkeydown="handleKey(event, 'suggestions1', 'manualFood1')"
+          value="{{ manual_query|default:'' }}" />
+        <div id="suggestions1" class="manual-suggestions"></div>
+      </div>
+
+      <!-- SLOT 2 (optional) -->
+      <div style="position:relative; margin-bottom: 10px;">
+        <label class="mm-label">Food 2 <span style="color:var(--text-muted)">(optional)</span></label>
+        <input type="text" name="manual_food_2" id="manualFood2" class="mm-input" placeholder="e.g. pizza"
+          oninput="showSuggestions(this, 'suggestions2')" onkeydown="handleKey(event, 'suggestions2', 'manualFood2')" />
+        <div id="suggestions2" class="manual-suggestions"></div>
+      </div>
+
+      <!-- SLOT 3 (optional) -->
+      <div style="position:relative; margin-bottom: 14px;">
+        <label class="mm-label">Food 3 <span style="color:var(--text-muted)">(optional)</span></label>
+        <input type="text" name="manual_food_3" id="manualFood3" class="mm-input" placeholder="e.g. ramen"
+          oninput="showSuggestions(this, 'suggestions3')" onkeydown="handleKey(event, 'suggestions3', 'manualFood3')" />
+        <div id="suggestions3" class="manual-suggestions"></div>
+      </div>
+
+      <button type="submit" class="mm-btn mm-btn--primary" style="width:100%;">
+        Compare Foods →
+      </button>
     </form>
   </div>
 
   <div class="mm-card" style="grid-column: span 5;">
     <div class="mm-kpi">
       <div>
-        <div class="mm-kpi__label">Comparison Result UI</div>
-        <div class="mm-kpi__meta">Visual placeholders for multi-image comparison.</div>
+        <div class="mm-kpi__label">How It Works</div>
+        <div class="mm-kpi__meta">Upload photos or type food names to compare.</div>
       </div>
-      <span class="mm-pill">Preview</span>
+      <span class="mm-pill">Guide</span>
     </div>
 
     <div class="mm-grid" style="margin-top: 12px;">
       <div class="mm-card" style="grid-column: span 12; box-shadow: none;">
         <div class="mm-kpi" style="align-items:center;">
           <div>
-            <div class="mm-kpi__label">Food A</div>
-            <div class="mm-kpi__meta">Calories • Protein • Sugar • Fat • Fiber</div>
+            <div class="mm-kpi__label">📸 Upload up to 3 photos</div>
+            <div class="mm-kpi__meta">Click the drop zone to add photos one-by-one, or select multiple at once
+              (Ctrl+click).</div>
           </div>
-          <span class="mm-pill">Card</span>
         </div>
-        <div class="mm-chart" style="height: 110px; margin-top: 10px;">Food image + nutrition tiles</div>
       </div>
 
       <div class="mm-card" style="grid-column: span 12; box-shadow: none;">
         <div class="mm-kpi" style="align-items:center;">
           <div>
-            <div class="mm-kpi__label">Food B</div>
-            <div class="mm-kpi__meta">Calories • Protein • Sugar • Fat • Fiber</div>
+            <div class="mm-kpi__label">✍️ Or type 1–3 food names</div>
+            <div class="mm-kpi__meta">Use the manual slots with autocomplete to find foods from our database.</div>
           </div>
-          <span class="mm-pill">Card</span>
         </div>
-        <div class="mm-chart" style="height: 110px; margin-top: 10px;">Food image + nutrition tiles</div>
       </div>
 
-      <div class="mm-card" style="grid-column: span 12; border-color: rgba(22,163,74,0.22); background: rgba(22,163,74,0.05); box-shadow: none;">
+      <div class="mm-card"
+        style="grid-column: span 12; border-color: rgba(22,163,74,0.22); background: rgba(22,163,74,0.05); box-shadow: none;">
         <div class="mm-kpi" style="align-items:center;">
           <div>
-            <div class="mm-kpi__label">Best Choice to Eat</div>
-            <div class="mm-kpi__meta">Reasoning: lower sugar + higher protein, fits your daily target.</div>
+            <div class="mm-kpi__label">⭐ Best Choice Highlighted</div>
+            <div class="mm-kpi__meta">We rank by protein-to-calorie ratio and highlight your best pick.</div>
           </div>
-          <span class="mm-pill mm-pill--good">Recommended</span>
+          <span class="mm-pill mm-pill--good">Smart</span>
         </div>
       </div>
     </div>
   </div>
 </section>
+
+<style>
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  const input = document.getElementById('image-input');
+  /* ══════════════════════════════════════════════
+     ACCUMULATED FILE UPLOAD (supports adding images
+     one-by-one across multiple browse dialogs)
+     ══════════════════════════════════════════════ */
+
+  const realInput = document.getElementById('image-input');   // hidden input inside form
+  const filePicker = document.getElementById('filePicker');    // separate picker
   const drop = document.getElementById('dropzone');
   const fileCount = document.getElementById('fileCount');
   const clearBtn = document.getElementById('clearBtn');
+  const previewBox = document.getElementById('imagePreview');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const uploadForm = document.getElementById('uploadForm');
+  const loadingDiv = document.getElementById('uploadLoading');
+  const loadingText = document.getElementById('loadingText');
 
-  function updateCount() {
-    const n = input.files ? input.files.length : 0;
-    fileCount.textContent = n ? `${n} file${n > 1 ? 's' : ''} selected` : 'No files selected';
+  // ── Accumulated files array (max 3) ──
+  let accumulatedFiles = [];
+
+  function addFiles(newFiles) {
+    const remaining = 3 - accumulatedFiles.length;
+    if (remaining <= 0) {
+      alert('Maximum 3 images allowed. Clear images to start over.');
+      return;
+    }
+    const toAdd = Array.from(newFiles).slice(0, remaining);
+    accumulatedFiles = accumulatedFiles.concat(toAdd);
+    syncToInput();
+    renderUI();
   }
 
-  ['dragenter','dragover'].forEach(evt => {
-    drop.addEventListener(evt, e => {
-      e.preventDefault();
-      drop.classList.add('drag');
+  function removeFile(index) {
+    accumulatedFiles.splice(index, 1);
+    syncToInput();
+    renderUI();
+  }
+
+  function clearAllFiles() {
+    accumulatedFiles = [];
+    syncToInput();
+    renderUI();
+  }
+
+  /** Copy accumulatedFiles → the real <input name="image"> via DataTransfer */
+  function syncToInput() {
+    const dt = new DataTransfer();
+    accumulatedFiles.forEach(f => dt.items.add(f));
+    realInput.files = dt.files;
+  }
+
+  function renderUI() {
+    const n = accumulatedFiles.length;
+
+    // Update pill count
+    if (n === 0) {
+      fileCount.textContent = 'No files selected';
+    } else if (n < 3) {
+      fileCount.textContent = `${n} file${n > 1 ? 's' : ''} selected — you can add ${3 - n} more`;
+    } else {
+      fileCount.textContent = '3 files selected (maximum reached)';
+    }
+
+    // Render thumbnails
+    previewBox.innerHTML = '';
+    if (n === 0) {
+      previewBox.style.display = 'none';
+      return;
+    }
+    previewBox.style.display = 'flex';
+
+    accumulatedFiles.forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const thumb = document.createElement('div');
+        thumb.style.cssText = 'position:relative;width:100px;height:100px;border-radius:10px;overflow:hidden;border:1px solid var(--border);flex-shrink:0;';
+        thumb.innerHTML = `
+        <img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;" />
+        <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.75);color:var(--accent);font-size:10px;font-weight:700;text-align:center;padding:3px;">
+          Photo ${i + 1}
+        </div>
+        <button type="button" onclick="removeFile(${i})"
+          style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;
+                 background:rgba(248,113,113,0.9);border:none;color:#fff;font-size:12px;
+                 cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">
+          ✕
+        </button>`;
+        previewBox.appendChild(thumb);
+      };
+      reader.readAsDataURL(file);
     });
-  });
-  ['dragleave','drop'].forEach(evt => {
-    drop.addEventListener(evt, e => {
-      e.preventDefault();
-      drop.classList.remove('drag');
-    });
-  });
-  drop.addEventListener('drop', e => {
-    if (e.dataTransfer.files && e.dataTransfer.files.length) {
-      input.files = e.dataTransfer.files;
-      updateCount();
+  }
+
+  /* ── FILE PICKER: accumulate on each selection ── */
+  filePicker.addEventListener('change', () => {
+    if (filePicker.files.length) {
+      addFiles(filePicker.files);
+      filePicker.value = '';  // reset picker so same file can be re-added
     }
   });
-  input.addEventListener('change', updateCount);
-  clearBtn.addEventListener('click', () => {
-    input.value = '';
-    updateCount();
+
+  /* ── DRAG & DROP ── */
+  ['dragenter', 'dragover'].forEach(e => drop.addEventListener(e, ev => {
+    ev.preventDefault(); drop.classList.add('drag');
+  }));
+  ['dragleave', 'drop'].forEach(e => drop.addEventListener(e, ev => {
+    ev.preventDefault(); drop.classList.remove('drag');
+  }));
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length) {
+      addFiles(e.dataTransfer.files);
+    }
   });
-  updateCount();
+
+  /* ── CLEAR ── */
+  clearBtn.addEventListener('click', clearAllFiles);
+
+  /* ── LOADING STATE ON SUBMIT ── */
+  uploadForm.addEventListener('submit', function (e) {
+    if (accumulatedFiles.length === 0) {
+      e.preventDefault();
+      return;
+    }
+    const count = accumulatedFiles.length;
+    loadingText.textContent = `Analyzing ${count} image${count > 1 ? 's' : ''}... This may take a moment.`;
+    loadingDiv.style.display = 'block';
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = 'Analyzing...';
+  });
+
+  // Initial render
+  renderUI();
+
+
+  /* ══════════════════════════════════════════════
+     MULTI-SLOT AUTOCOMPLETE (manual food entry)
+     ══════════════════════════════════════════════ */
+  const activeIndices = { suggestions1: -1, suggestions2: -1, suggestions3: -1 };
+
+  async function showSuggestions(inputEl, dropId) {
+    const query = inputEl.value.trim();
+    const box = document.getElementById(dropId);
+    activeIndices[dropId] = -1;
+
+    if (query.length < 1) { box.style.display = 'none'; return; }
+
+    try {
+      const res = await fetch(`/api/food-suggestions/?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      const suggestions = (data.suggestions || []).slice(0, 8);
+
+      if (!suggestions.length) { box.style.display = 'none'; return; }
+
+      box.innerHTML = suggestions.map((s, i) =>
+        `<div class="manual-suggestion-item"
+            data-value="${s}"
+            data-index="${i}"
+            onclick="pickSuggestion('${s.replace(/'/g, "\\'")}', '${inputEl.id}', '${dropId}')">
+        ${s}
+      </div>`
+      ).join('');
+
+      box.style.display = 'block';
+    } catch (e) {
+      box.style.display = 'none';
+    }
+  }
+
+  function pickSuggestion(value, inputId, dropId) {
+    document.getElementById(inputId).value = value;
+    document.getElementById(dropId).style.display = 'none';
+    activeIndices[dropId] = -1;
+
+    // Auto-focus next empty slot
+    const order = ['manualFood1', 'manualFood2', 'manualFood3'];
+    const next = order.find(id => id !== inputId && !document.getElementById(id).value);
+    if (next) document.getElementById(next).focus();
+  }
+
+  function handleKey(event, dropId, inputId) {
+    const box = document.getElementById(dropId);
+    const items = box.querySelectorAll('.manual-suggestion-item');
+    if (!items.length) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      activeIndices[dropId] = Math.min(activeIndices[dropId] + 1, items.length - 1);
+      highlightItem(items, activeIndices[dropId]);
+
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      activeIndices[dropId] = Math.max(activeIndices[dropId] - 1, 0);
+      highlightItem(items, activeIndices[dropId]);
+
+    } else if (event.key === 'Enter' && activeIndices[dropId] >= 0) {
+      event.preventDefault();
+      pickSuggestion(items[activeIndices[dropId]].dataset.value, inputId, dropId);
+
+    } else if (event.key === 'Escape') {
+      box.style.display = 'none';
+    }
+  }
+
+  function highlightItem(items, idx) {
+    items.forEach((el, i) => el.classList.toggle('is-active', i === idx));
+  }
+
+  /* Close all dropdowns when clicking outside */
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#manualForm')) {
+      ['suggestions1', 'suggestions2', 'suggestions3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+    }
+  });
 </script>
 {% endblock %}
-
