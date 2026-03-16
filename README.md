@@ -67,7 +67,7 @@ MacroMate is a dark-themed, premium nutrition tracking platform. Users can uploa
 ## Screenshots
 
 ### 📊 Dashboard
-![Dashboard](docs/screenshots/screenshot_Dashboard.png)
+![Dashboard](docs/screenshots/screenshot_dashboard.png)
 > Real-time KPI cards showing daily calorie target, calories consumed, remaining budget, weekly average, macro progress bars (carbs, protein, fat), micronutrient indicators (sugar, fiber, vitamins), and a 7-day calorie trend chart.
 
 ---
