@@ -67,19 +67,19 @@ MacroMate is a dark-themed, premium nutrition tracking platform. Users can uploa
 ## Screenshots
 
 ### 📊 Dashboard
-![Dashboard](screenshot_dashboard.png)
+![Dashboard](docs/screenshots/screenshot_Dashboard.png)
 > Real-time KPI cards showing daily calorie target, calories consumed, remaining budget, weekly average, macro progress bars (carbs, protein, fat), micronutrient indicators (sugar, fiber, vitamins), and a 7-day calorie trend chart.
 
 ---
 
 ### 📸 Upload & Analyze Food
-![Upload Food](screenshot_upload.png)
+![Upload Food](docs/screenshots/screenshot_upload.png)
 > Drag-and-drop upload zone supporting up to 3 food photos for side-by-side comparison. Alternatively, type up to 3 food names in the manual entry slots with live autocomplete powered by the local nutrition database.
 
 ---
 
 ### 📈 Nutrition Insights & Analysis
-![Analysis](screenshot_analysis.png)
+![Analysis](docs/screenshots/screenshot_analysis.png)
 > 7-day stacked bar chart for macronutrient patterns, sugar intake trend line, micronutrient deficiency summary (Vitamin C, Fiber, Sodium), calories vs. target bar chart, and a doughnut chart showing the overall nutrient balance.
 
 ---
