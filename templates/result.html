@@ -44,6 +44,16 @@
         {% else %}
         <div class="confidence-badge--high">✓ High Confidence ({{ confidence }}%)</div>
         {% endif %}
+
+        {% if detection_method == "CUSTOM" %}
+        <span class="mm-pill mm-pill--info" style="margin-left: 8px; font-size: 11px;">
+          🧠 Custom Model
+        </span>
+        {% elif detection_method == "CLIP" %}
+        <span class="mm-pill" style="margin-left: 8px; font-size: 11px;">
+          🔍 CLIP Fallback
+        </span>
+        {% endif %}
       </div>
 
       {% if needs_confirmation %}
@@ -82,6 +92,26 @@
           <span class="nutrition-panel__unit">g</span>
         </div>
       </div>
+
+      {% if fiber or sugar %}
+      <div class="nutrition-panel" style="margin-top: 12px;">
+        {% if fiber %}
+        <div class="nutrition-panel__item">
+          <span class="nutrition-panel__label">Fiber</span>
+          <span class="nutrition-panel__num" style="font-size: 24px;">{{ fiber }}</span>
+          <span class="nutrition-panel__unit">g</span>
+        </div>
+        {% endif %}
+        {% if sugar %}
+        <div class="nutrition-panel__item">
+          <span class="nutrition-panel__label">Sugar</span>
+          <span class="nutrition-panel__num" style="font-size: 24px;">{{ sugar }}</span>
+          <span class="nutrition-panel__unit">g</span>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
       {% elif not needs_confirmation %}
       <div class="mm-card" style="text-align: center;">
         <p style="margin: 0; color: var(--text-muted); font-size: 15px;">

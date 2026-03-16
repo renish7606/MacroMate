@@ -212,6 +212,13 @@ def upload_food(request):
                     "protein":    nutrition.get("protein",  0),
                     "carbs":      nutrition.get("carbs",    0),
                     "fat":        nutrition.get("fat",      0),
+                    "fiber":      nutrition.get("fiber",    0),
+                    "sugar":      nutrition.get("sugar",    0),
+                    "vitamin_a":  nutrition.get("vitamin_a", 0),
+                    "vitamin_c":  nutrition.get("vitamin_c", 0),
+                    "calcium":    nutrition.get("calcium",   0),
+                    "iron":       nutrition.get("iron",      0),
+                    "detection_method": ml_result.get("method", "UNKNOWN"),
                 })
             except Exception as e:
                 print(f"   ⚠️ Error processing image {idx}: {e}")
@@ -233,6 +240,13 @@ def upload_food(request):
                     "protein":            r["protein"],
                     "carbs":              r["carbs"],
                     "fat":                r["fat"],
+                    "fiber":              r.get("fiber", 0),
+                    "sugar":              r.get("sugar", 0),
+                    "vitamin_a":          r.get("vitamin_a", 0),
+                    "vitamin_c":          r.get("vitamin_c", 0),
+                    "calcium":            r.get("calcium", 0),
+                    "iron":               r.get("iron", 0),
+                    "detection_method":   r.get("detection_method", "UNKNOWN"),
                     "confidence":         r["confidence"],
                     "needs_confirmation": False,
                     "image":              r["image"],
