@@ -23,3 +23,6 @@ food_calorie_project/settings.py
 
 # Large model files
 models/*.h5
+
+# Screenshots
+*.png
