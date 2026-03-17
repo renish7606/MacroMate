@@ -2,150 +2,227 @@
 {% block head_title %}Dashboard - MacroMate{% endblock %}
 {% block content %}
 <div class="mm-pagehead">
-<div>
-<h1 class="mm-title">Your Nutrition Dashboard</h1>
-<p class="mm-subtitle">A calm, high-level view of calories, macros, and key micronutrients.</p>
-</div>
-<div class="mm-actions">
-<a class="mm-btn mm-btn--primary" href="{% url 'upload_food' %}">Upload Food</a>
-<a class="mm-btn mm-btn--secondary" href="{% url 'meal_history' %}">Meal History</a>
-</div>
+    <div>
+        <h1 class="mm-title">Your Nutrition Dashboard</h1>
+        <p class="mm-subtitle">A calm, high-level view of calories, macros, and key micronutrients.</p>
+    </div>
+    <div class="mm-actions">
+        <a class="mm-btn mm-btn--primary" href="{% url 'upload_food' %}">Upload Food</a>
+        <a class="mm-btn mm-btn--secondary" href="{% url 'meal_history' %}">Meal History</a>
+    </div>
 </div>
 <section class="mm-grid">
-<div class="mm-card" style="grid-column:span 3"><div class="mm-kpi"><div>
-<div class="mm-kpi__label">Daily Calorie Target</div>
-<div class="mm-kpi__value">{{ daily_goal|floatformat:0 }}</div>
-<div class="mm-kpi__meta">kcal</div>
-</div><span class="mm-pill mm-pill--info">{% if profile %}Profile{% else %}Default{% endif %}</span></div></div>
+    <div class="mm-card" style="grid-column:span 3">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">Daily Calorie Target</div>
+                <div class="mm-kpi__value">{{ daily_goal|floatformat:0 }}</div>
+                <div class="mm-kpi__meta">kcal</div>
+            </div><span class="mm-pill mm-pill--info">{% if profile %}Profile{% else %}Default{% endif %}</span>
+        </div>
+    </div>
 
-<div class="mm-card" style="grid-column:span 3"><div class="mm-kpi"><div>
-<div class="mm-kpi__label">Calories Today</div>
-<div class="mm-kpi__value">{% if has_food_logged %}{{ today_calories|floatformat:0 }}{% else %}0{% endif %}</div>
-<div class="mm-kpi__meta">kcal</div>
-</div><span class="mm-pill">Today</span></div></div>
+    <div class="mm-card" style="grid-column:span 3">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">Calories Today</div>
+                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_calories|floatformat:0 }}{% else %}0{% endif
+                    %}</div>
+                <div class="mm-kpi__meta">kcal</div>
+            </div><span class="mm-pill">Today</span>
+        </div>
+    </div>
 
-<div class="mm-card" style="grid-column:span 3"><div class="mm-kpi"><div>
-<div class="mm-kpi__label">Remaining</div>
-<div class="mm-kpi__value">{{ remaining_calories|floatformat:0 }}</div>
-<div class="mm-kpi__meta">kcal to target</div>
-</div><span class="mm-pill mm-pill--{% if remaining_status == 'On track' %}good{% else %}warn{% endif %}">{{ remaining_status }}</span></div></div>
+    <div class="mm-card" style="grid-column:span 3">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">Remaining</div>
+                <div class="mm-kpi__value">{{ remaining_calories|floatformat:0 }}</div>
+                <div class="mm-kpi__meta">kcal to target</div>
+            </div><span class="mm-pill mm-pill--{% if remaining_status == 'On track' %}good{% else %}warn{% endif %}">{{
+                remaining_status }}</span>
+        </div>
+    </div>
 
-<div class="mm-card" style="grid-column:span 3"><div class="mm-kpi"><div>
-<div class="mm-kpi__label">Weekly Avg</div>
-<div class="mm-kpi__value">{{ week_avg_calories|floatformat:0 }}</div>
-<div class="mm-kpi__meta">kcal / 7 days</div>
-</div><span class="mm-pill">7D</span></div></div>
+    <div class="mm-card" style="grid-column:span 3">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">Weekly Avg</div>
+                <div class="mm-kpi__value">{{ week_avg_calories|floatformat:0 }}</div>
+                <div class="mm-kpi__meta">kcal / 7 days</div>
+            </div><span class="mm-pill">7D</span>
+        </div>
+    </div>
 
-<div class="mm-card" style="grid-column:span 4"><div class="mm-kpi"><div>
-<div class="mm-kpi__label">Carbs</div>
-<div class="mm-kpi__value">{% if has_food_logged %}{{ today_carbs|floatformat:0 }}g{% else %}0g{% endif %}</div>
-<div class="mm-kpi__meta">Target: {{ carbs_target }}g</div>
-</div><span class="mm-pill mm-pill--{% if carbs_status == 'Balanced' %}info{% else %}warn{% endif %}">{{ carbs_status }}</span></div>
-<div class="mm-mini" style="margin-top:14px"><div class="mm-mini__bar"><span style="--w:{% if has_food_logged %}{{ carbs_percent }}{% else %}0{% endif %}%"></span></div><div class="mm-mini__value">{% if has_food_logged %}{{ carbs_percent }}{% else %}0{% endif %}%</div></div></div>
+    <div class="mm-card" style="grid-column:span 4">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">Carbs</div>
+                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_carbs|floatformat:0 }}g{% else %}0g{% endif
+                    %}</div>
+                <div class="mm-kpi__meta">Target: {{ carbs_target }}g</div>
+            </div><span class="mm-pill mm-pill--{% if carbs_status == 'Balanced' %}info{% else %}warn{% endif %}">{{
+                carbs_status }}</span>
+        </div>
+        <div class="mm-mini" style="margin-top:14px">
+            <div class="mm-mini__bar"><span
+                    style="--w:{% if has_food_logged %}{{ carbs_percent }}{% else %}0{% endif %}%"></span></div>
+            <div class="mm-mini__value">{% if has_food_logged %}{{ carbs_percent }}{% else %}0{% endif %}%</div>
+        </div>
+    </div>
 
-<div class="mm-card" style="grid-column:span 4"><div class="mm-kpi"><div>
-<div class="mm-kpi__label">Protein</div>
-<div class="mm-kpi__value">{% if has_food_logged %}{{ today_protein|floatformat:0 }}g{% else %}0g{% endif %}</div>
-<div class="mm-kpi__meta">Target: {{ protein_target }}g</div>
-</div><span class="mm-pill mm-pill--{% if protein_status == 'Strong' %}good{% elif protein_status == 'Balanced' %}info{% else %}warn{% endif %}">{{ protein_status }}</span></div>
-<div class="mm-mini" style="margin-top:14px"><div class="mm-mini__bar"><span style="--w:{% if has_food_logged %}{{ protein_percent }}{% else %}0{% endif %}%"></span></div><div class="mm-mini__value">{% if has_food_logged %}{{ protein_percent }}{% else %}0{% endif %}%</div></div></div>
+    <div class="mm-card" style="grid-column:span 4">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">Protein</div>
+                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_protein|floatformat:0 }}g{% else %}0g{%
+                    endif %}</div>
+                <div class="mm-kpi__meta">Target: {{ protein_target }}g</div>
+            </div><span
+                class="mm-pill mm-pill--{% if protein_status == 'Strong' %}good{% elif protein_status == 'Balanced' %}info{% else %}warn{% endif %}">{{
+                protein_status }}</span>
+        </div>
+        <div class="mm-mini" style="margin-top:14px">
+            <div class="mm-mini__bar"><span
+                    style="--w:{% if has_food_logged %}{{ protein_percent }}{% else %}0{% endif %}%"></span></div>
+            <div class="mm-mini__value">{% if has_food_logged %}{{ protein_percent }}{% else %}0{% endif %}%</div>
+        </div>
+    </div>
 
-<div class="mm-card" style="grid-column:span 4"><div class="mm-kpi"><div>
-<div class="mm-kpi__label">Fat</div>
-<div class="mm-kpi__value">{% if has_food_logged %}{{ today_fat|floatformat:0 }}g{% else %}0g{% endif %}</div>
-<div class="mm-kpi__meta">Target: {{ fat_target }}g</div>
-</div><span class="mm-pill {% if fat_status == 'Stable' %}mm-pill--info{% endif %}">{{ fat_status }}</span></div>
-<div class="mm-mini" style="margin-top:14px"><div class="mm-mini__bar"><span style="--w:{% if has_food_logged %}{{ fat_percent }}{% else %}0{% endif %}%"></span></div><div class="mm-mini__value">{% if has_food_logged %}{{ fat_percent }}{% else %}0{% endif %}%</div></div></div>
+    <div class="mm-card" style="grid-column:span 4">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">Fat</div>
+                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_fat|floatformat:0 }}g{% else %}0g{% endif %}
+                </div>
+                <div class="mm-kpi__meta">Target: {{ fat_target }}g</div>
+            </div><span class="mm-pill {% if fat_status == 'Stable' %}mm-pill--info{% endif %}">{{ fat_status }}</span>
+        </div>
+        <div class="mm-mini" style="margin-top:14px">
+            <div class="mm-mini__bar"><span
+                    style="--w:{% if has_food_logged %}{{ fat_percent }}{% else %}0{% endif %}%"></span></div>
+            <div class="mm-mini__value">{% if has_food_logged %}{{ fat_percent }}{% else %}0{% endif %}%</div>
+        </div>
+    </div>
 
-{% if has_food_logged %}
-<div class="mm-card" style="grid-column:span 6">
-<div class="mm-kpi"><div>
-<div class="mm-kpi__label">Micronutrient Indicators</div>
-<div class="mm-kpi__meta">Quick signals to guide food choices.</div>
-</div><span class="mm-pill">Daily</span></div>
-<div class="mm-grid" style="margin-top:12px">
-<div class="mm-card" style="grid-column:span 4;box-shadow:none">
-<div class="mm-kpi__label">Sugar</div>
-<div style="font-size:18px;color:var(--accent);margin:4px 0">{{ sugar_g }}g</div>
-<div class="mm-mini" style="margin-top:8px"><div class="mm-mini__bar"><span style="--w:{{ sugar_pct }}%"></span></div><div class="mm-mini__value">{{ sugar_pct }}%</div></div>
-</div>
-<div class="mm-card" style="grid-column:span 4;box-shadow:none">
-<div class="mm-kpi__label">Fiber</div>
-<div style="font-size:18px;color:var(--accent);margin:4px 0">{{ fiber_g }}g</div>
-<div class="mm-mini" style="margin-top:8px"><div class="mm-mini__bar"><span style="--w:{{ fiber_pct }}%"></span></div><div class="mm-mini__value">{{ fiber_pct }}%</div></div>
-</div>
-<div class="mm-card" style="grid-column:span 4;box-shadow:none">
-<div class="mm-kpi__label">Vitamin A</div>
-<div style="font-size:18px;color:var(--accent-2);margin:4px 0">~{{ vitamin_a_pct }}%</div>
-<div class="mm-mini" style="margin-top:8px"><div class="mm-mini__bar"><span style="--w:{{ vitamin_a_pct }}%"></span></div><div class="mm-mini__value">{{ vitamin_a_pct }}%</div></div>
-</div>
-<div class="mm-card" style="grid-column:span 4;box-shadow:none">
-<div class="mm-kpi__label">Vitamin C</div>
-<div style="font-size:18px;color:var(--accent-2);margin:4px 0">~{{ vitamin_c_pct }}%</div>
-<div class="mm-mini" style="margin-top:8px"><div class="mm-mini__bar"><span style="--w:{{ vitamin_c_pct }}%"></span></div><div class="mm-mini__value">{{ vitamin_c_pct }}%</div></div>
-</div>
-<div class="mm-card" style="grid-column:span 4;box-shadow:none">
-<div class="mm-kpi__label">Calcium</div>
-<div style="font-size:18px;color:var(--accent-2);margin:4px 0">~{{ calcium_pct }}%</div>
-<div class="mm-mini" style="margin-top:8px"><div class="mm-mini__bar"><span style="--w:{{ calcium_pct }}%"></span></div><div class="mm-mini__value">{{ calcium_pct }}%</div></div>
-</div>
-<div class="mm-card" style="grid-column:span 4;box-shadow:none">
-<div class="mm-kpi__label">Iron</div>
-<div style="font-size:18px;color:var(--accent-2);margin:4px 0">~{{ iron_pct }}%</div>
-<div class="mm-mini" style="margin-top:8px"><div class="mm-mini__bar"><span style="--w:{{ iron_pct }}%"></span></div><div class="mm-mini__value">{{ iron_pct }}%</div></div>
-</div>
-</div>
-</div>
-{% else %}
-<div class="mm-card" style="grid-column:span 6">
-<div class="mm-kpi"><div>
-<div class="mm-kpi__label">No Food Logged Yet</div>
-<div class="mm-kpi__meta">Upload food images to start tracking.</div>
-</div><span class="mm-pill">Get Started</span></div>
-</div>
-{% endif %}
+    {% if has_food_logged %}
+    <div class="mm-card" style="grid-column:span 6">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">Micronutrient Indicators</div>
+                <div class="mm-kpi__meta">Quick signals to guide food choices.</div>
+            </div><span class="mm-pill">Daily</span>
+        </div>
+        <div class="mm-grid" style="margin-top:12px">
+            <div class="mm-card" style="grid-column:span 4;box-shadow:none">
+                <div class="mm-kpi__label">Sugar</div>
+                <div style="font-size:18px;color:var(--accent);margin:4px 0">{{ sugar_g }}g</div>
+                <div class="mm-mini" style="margin-top:8px">
+                    <div class="mm-mini__bar"><span style="--w:{{ sugar_pct }}%"></span></div>
+                    <div class="mm-mini__value">{{ sugar_pct }}%</div>
+                </div>
+            </div>
+            <div class="mm-card" style="grid-column:span 4;box-shadow:none">
+                <div class="mm-kpi__label">Fiber</div>
+                <div style="font-size:18px;color:var(--accent);margin:4px 0">{{ fiber_g }}g</div>
+                <div class="mm-mini" style="margin-top:8px">
+                    <div class="mm-mini__bar"><span style="--w:{{ fiber_pct }}%"></span></div>
+                    <div class="mm-mini__value">{{ fiber_pct }}%</div>
+                </div>
+            </div>
+            <div class="mm-card" style="grid-column:span 4;box-shadow:none">
+                <div class="mm-kpi__label">Vitamin A</div>
+                <div style="font-size:18px;color:var(--accent-2);margin:4px 0">~{{ vitamin_a_pct }}%</div>
+                <div class="mm-mini" style="margin-top:8px">
+                    <div class="mm-mini__bar"><span style="--w:{{ vitamin_a_pct }}%"></span></div>
+                    <div class="mm-mini__value">{{ vitamin_a_pct }}%</div>
+                </div>
+            </div>
+            <div class="mm-card" style="grid-column:span 4;box-shadow:none">
+                <div class="mm-kpi__label">Vitamin C</div>
+                <div style="font-size:18px;color:var(--accent-2);margin:4px 0">~{{ vitamin_c_pct }}%</div>
+                <div class="mm-mini" style="margin-top:8px">
+                    <div class="mm-mini__bar"><span style="--w:{{ vitamin_c_pct }}%"></span></div>
+                    <div class="mm-mini__value">{{ vitamin_c_pct }}%</div>
+                </div>
+            </div>
+            <div class="mm-card" style="grid-column:span 4;box-shadow:none">
+                <div class="mm-kpi__label">Calcium</div>
+                <div style="font-size:18px;color:var(--accent-2);margin:4px 0">~{{ calcium_pct }}%</div>
+                <div class="mm-mini" style="margin-top:8px">
+                    <div class="mm-mini__bar"><span style="--w:{{ calcium_pct }}%"></span></div>
+                    <div class="mm-mini__value">{{ calcium_pct }}%</div>
+                </div>
+            </div>
+            <div class="mm-card" style="grid-column:span 4;box-shadow:none">
+                <div class="mm-kpi__label">Iron</div>
+                <div style="font-size:18px;color:var(--accent-2);margin:4px 0">~{{ iron_pct }}%</div>
+                <div class="mm-mini" style="margin-top:8px">
+                    <div class="mm-mini__bar"><span style="--w:{{ iron_pct }}%"></span></div>
+                    <div class="mm-mini__value">{{ iron_pct }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="mm-card" style="grid-column:span 6">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">No Food Logged Yet</div>
+                <div class="mm-kpi__meta">Upload food images to start tracking.</div>
+            </div><span class="mm-pill">Get Started</span>
+        </div>
+    </div>
+    {% endif %}
 
-<div class="mm-card" style="grid-column:span 6">
-<div class="mm-kpi"><div>
-<div class="mm-kpi__label">Daily calorie intake</div>
-<div class="mm-kpi__meta">Last 7 days</div>
-</div><span class="mm-pill">Line</span></div>
-<div style="position:relative;height:180px;margin-top:12px"><canvas id="calorieChart"></canvas></div>
-</div>
+    <div class="mm-card" style="grid-column:span 6">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">Daily calorie intake</div>
+                <div class="mm-kpi__meta">Last 7 days</div>
+            </div><span class="mm-pill">Line</span>
+        </div>
+        <div style="position:relative;height:180px;margin-top:12px"><canvas id="calorieChart"></canvas></div>
+    </div>
 
-<div class="mm-card" style="grid-column:span 6">
-<div class="mm-kpi"><div>
-<div class="mm-kpi__label">Today macros</div>
-<div class="mm-kpi__meta">Protein / Carbs / Fat</div>
-</div><span class="mm-pill">Bar</span></div>
-<div style="position:relative;height:180px;margin-top:12px"><canvas id="macroChart"></canvas></div>
-</div>
+    <div class="mm-card" style="grid-column:span 6">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">Today macros</div>
+                <div class="mm-kpi__meta">Protein / Carbs / Fat</div>
+            </div><span class="mm-pill">Bar</span>
+        </div>
+        <div style="position:relative;height:180px;margin-top:12px"><canvas id="macroChart"></canvas></div>
+    </div>
 
-{% if profile %}
-<div class="mm-card" id="progress" style="grid-column:span 6">
-<div class="mm-kpi"><div>
-<div class="mm-kpi__label">Progress</div>
-<div class="mm-kpi__meta">Snapshot of consistency and goals.</div>
-</div><span class="mm-pill mm-pill--good">Weekly</span></div>
-<div class="mm-grid" style="margin-top:12px">
-<div class="mm-card" style="grid-column:span 4;box-shadow:none">
-<div class="mm-kpi__label">Weight</div>
-<div class="mm-kpi__value" style="font-size:22px">{% if profile.weight %}{{ profile.weight }} kg{% else %}-{% endif %}</div>
-<div class="mm-kpi__meta">Current weight</div>
-</div>
-<div class="mm-card" style="grid-column:span 4;box-shadow:none">
-<div class="mm-kpi__label">Goal</div>
-<div class="mm-kpi__value" style="font-size:22px">{{ profile.get_goal_display|default:"-" }}</div>
-<div class="mm-kpi__meta">Current mode</div>
-</div>
-<div class="mm-card" style="grid-column:span 4;box-shadow:none">
-<div class="mm-kpi__label">Daily Target</div>
-<div class="mm-kpi__value" style="font-size:22px">{{ daily_goal }} kcal</div>
-<div class="mm-kpi__meta">From profile</div>
-</div>
-</div>
-</div>
-{% endif %}
+    {% if profile %}
+    <div class="mm-card" id="progress" style="grid-column:span 6">
+        <div class="mm-kpi">
+            <div>
+                <div class="mm-kpi__label">Progress</div>
+                <div class="mm-kpi__meta">Snapshot of consistency and goals.</div>
+            </div><span class="mm-pill mm-pill--good">Weekly</span>
+        </div>
+        <div class="mm-grid" style="margin-top:12px">
+            <div class="mm-card" style="grid-column:span 4;box-shadow:none">
+                <div class="mm-kpi__label">Weight</div>
+                <div class="mm-kpi__value" style="font-size:22px">{% if profile.weight %}{{ profile.weight }} kg{% else
+                    %}-{% endif %}</div>
+                <div class="mm-kpi__meta">Current weight</div>
+            </div>
+            <div class="mm-card" style="grid-column:span 4;box-shadow:none">
+                <div class="mm-kpi__label">Goal</div>
+                <div class="mm-kpi__value" style="font-size:22px">{{ profile.get_goal_display|default:"-" }}</div>
+                <div class="mm-kpi__meta">Current mode</div>
+            </div>
+            <div class="mm-card" style="grid-column:span 4;box-shadow:none">
+                <div class="mm-kpi__label">Daily Target</div>
+                <div class="mm-kpi__value" style="font-size:22px">{{ daily_goal }} kcal</div>
+                <div class="mm-kpi__meta">From profile</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
 </section>
 {% endblock %}
@@ -153,6 +230,6 @@
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-Chart.defaults.color='#6b7280';Chart.defaults.borderColor='rgba(255,255,255,0.07)';var c1=document.getElementById('calorieChart');if(c1){new Chart(c1,{type:'line',data:{labels:{{ chart_labels|safe }},datasets:[{label:'Cal',data:{{ chart_calories|safe }},borderColor:'#a3e635',backgroundColor:'rgba(163,230,53,0.08)',borderWidth:2,pointBackgroundColor:'#a3e635',pointRadius:4,tension:0.4,fill:true},{label:'Target',data:Array(7).fill({{ daily_goal_line }}),borderColor:'rgba(34,211,238,0.5)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'}},y:{grid:{color:'rgba(255,255,255,0.05)'},beginAtZero:true}}}});}var c2=document.getElementById('macroChart');if(c2){new Chart(c2,{type:'bar',data:{labels:{{ chart_macro_labels|safe }},datasets:[{label:'g',data:{{ chart_macro_values|safe }},backgroundColor:['rgba(163,230,53,0.7)','rgba(34,211,238,0.7)','rgba(251,191,36,0.7)'],borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.05)'},beginAtZero:true}}}});}
+    Chart.defaults.color = '#6b7280'; Chart.defaults.borderColor = 'rgba(255,255,255,0.07)'; var c1 = document.getElementById('calorieChart'); if (c1) { new Chart(c1, { type: 'line', data: { labels: {{ chart_labels| safe }}, datasets: [{ label: 'Cal', data: {{ chart_calories| safe }}, borderColor: '#a3e635', backgroundColor: 'rgba(163,230,53,0.08)', borderWidth: 2, pointBackgroundColor: '#a3e635', pointRadius: 4, tension: 0.4, fill: true}, { label: 'Target', data: Array(7).fill({{ daily_goal_line }}), borderColor: 'rgba(34,211,238,0.5)', borderWidth: 1, borderDash: [4, 4], pointRadius: 0, fill: false}]}, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true } } }});}var c2 = document.getElementById('macroChart'); if (c2) { new Chart(c2, { type: 'bar', data: { labels: {{ chart_macro_labels| safe }}, datasets: [{ label: 'g', data: {{ chart_macro_values| safe }}, backgroundColor: ['rgba(163,230,53,0.7)', 'rgba(34,211,238,0.7)', 'rgba(251,191,36,0.7)'], borderRadius: 6, borderSkipped: false}]}, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true } } }});}
 </script>
 {% endblock %}
