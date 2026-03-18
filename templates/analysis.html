@@ -17,8 +17,7 @@
         <div class="mm-kpi__label">Macronutrient Patterns</div>
         <div class="mm-kpi__meta">Weekly breakdown of protein, carbs, and fat intake.</div>
       </div>
-      <span class="mm-pill mm-pill--{% if macro_status == 'Balanced' %}good{% else %}warn{% endif %}">{{ macro_status
-        }}</span>
+      <span class="mm-pill mm-pill--{% if macro_status == 'Balanced' %}good{% else %}warn{% endif %}">{{ macro_status }}</span>
     </div>
     <div style="position:relative;height:240px;margin-top:12px;"><canvas id="macroPatternChart"></canvas></div>
   </div>
@@ -29,8 +28,7 @@
         <div class="mm-kpi__label">Sugar Intake Analysis</div>
         <div class="mm-kpi__meta">Avg daily sugar: {{ avg_daily_sugar }}g</div>
       </div>
-      <span class="mm-pill mm-pill--{% if sugar_status == 'Warning' %}warn{% else %}good{% endif %}">{{ sugar_status
-        }}</span>
+      <span class="mm-pill mm-pill--{% if sugar_status == 'Warning' %}warn{% else %}good{% endif %}">{{ sugar_status }}</span>
     </div>
     <div style="position:relative;height:180px;margin-top:12px;"><canvas id="sugarChart"></canvas></div>
   </div>

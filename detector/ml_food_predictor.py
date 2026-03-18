@@ -59,18 +59,18 @@ def _load_custom_model():
     # ── final_model.h5 ──
     if not os.path.exists(CUSTOM_MODEL_PATH):
         print(f"[MODEL LOADER] WARNING: final_model.h5 not found at {CUSTOM_MODEL_PATH}")
-        print(f"[MODEL LOADER] CLIP will be used as the sole detector.")
+        print(f"[MODEL LOADER] Falling back to built-in vision detector.")
         return
 
     try:
         import tensorflow as tf
         custom_model = tf.keras.models.load_model(CUSTOM_MODEL_PATH)
-        print(f"[MODEL LOADER] Custom model loaded: {CUSTOM_MODEL_PATH}")
+        print(f"[MODEL LOADER] Custom vision model loaded: {CUSTOM_MODEL_PATH}")
         print(f"[MODEL LOADER]   Input shape:  {custom_model.input_shape}")
         print(f"[MODEL LOADER]   Output shape: {custom_model.output_shape}")
     except Exception as e:
-        print(f"[MODEL LOADER] Custom model failed to load: {e}")
-        print(f"[MODEL LOADER] CLIP will be used as the sole detector.")
+        print(f"[MODEL LOADER] Custom vision model failed to load: {e}")
+        print(f"[MODEL LOADER] Falling back to built-in vision detector.")
         custom_model = None
 
 
@@ -88,7 +88,7 @@ try:
     device          = "cuda" if torch.cuda.is_available() else "cpu"
     clip_model, clip_preprocess = openai_clip.load("ViT-B/32", device=device)
     CLIP_AVAILABLE  = True
-    print(f"[MODEL LOADER] CLIP loaded on {device}")
+    print(f"[MODEL LOADER] Vision detector loaded on {device}")
 except ImportError:
     print("[MODEL LOADER] CLIP not installed -- install with: "
           "pip install git+https://github.com/openai/CLIP.git")
@@ -266,7 +266,7 @@ def predict_food(image_path: str) -> dict:
     Always logs which model was used to terminal.
     """
     print(f"\n{'─'*60}")
-    print(f"[PREDICTOR] Image: {os.path.basename(image_path)}")
+    print(f"[PREDICTOR] Image received: {os.path.basename(image_path)}")
 
     # ── 1. Try custom model ──
     if custom_model is not None:
@@ -275,17 +275,17 @@ def predict_food(image_path: str) -> dict:
         if custom_result and custom_result["is_confident"]:
             food = custom_result["food_name"].replace("_", " ")
             conf = custom_result["confidence"]
-            print(f"[CUSTOM MODEL] {food.title()} ({conf}%)")
+            print(f"[DETECTOR] High-confidence prediction: {food.title()} ({conf}%)")
             print(f"{'─'*60}\n")
             return custom_result
 
         elif custom_result:
             food = custom_result["food_name"].replace("_", " ")
             conf = custom_result["confidence"]
-            print(f"[CUSTOM MODEL] Low confidence: {food.title()} ({conf}%) "
-                  f"-- falling back to CLIP")
+            print(f"[DETECTOR] Low confidence from primary model: {food.title()} ({conf}%) "
+                  f"-- using backup detector")
     else:
-        print("[CUSTOM MODEL] Not available -- using CLIP directly")
+        print("[DETECTOR] Primary model not available -- using backup detector directly")
 
     # ── 2. Fall back to CLIP ──
     if CLIP_AVAILABLE:
@@ -293,10 +293,10 @@ def predict_food(image_path: str) -> dict:
         if clip_result:
             food = clip_result["food_name"].replace("_", " ")
             conf = clip_result["confidence"]
-            reason = ("custom model unavailable"
+            reason = ("primary model unavailable"
                       if custom_model is None
-                      else "custom model low confidence")
-            print(f"[CLIP FALLBACK] {food.title()} ({conf}%) -- {reason}")
+                      else "primary model low confidence")
+            print(f"[DETECTOR] Backup prediction: {food.title()} ({conf}%) -- {reason}")
             print(f"{'─'*60}\n")
             return clip_result
 

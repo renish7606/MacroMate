@@ -33,6 +33,7 @@ def dashboard(request):
     """
     Dashboard UI with real data from profile and food history
     """
+    print("[VIEW] dashboard requested")
     today = timezone.now().date()
     week_ago = today - timedelta(days=7)
     
@@ -164,6 +165,8 @@ def upload_food(request):
     Single image → old result.html (backwards compatible).
     Multiple images → multi_result.html comparison.
     """
+
+    print(f"[VIEW] upload_food {request.method}")
 
     # ── CONFIRMED FOOD (session, single-food legacy path) ──
     confirmed_food = request.session.get("confirmed_food")
@@ -320,6 +323,7 @@ def analysis(request):
     """
     Detailed analysis with real aggregated data and Chart.js charts
     """
+    print("[VIEW] analysis requested")
     today = timezone.now().date()
     week_ago = today - timedelta(days=6)
 
@@ -411,6 +415,7 @@ def assistant(request):
     """
     Food-only assistant UI
     """
+    print("[VIEW] assistant page requested")
     return render(request, "assistant.html")
 
 
@@ -448,6 +453,7 @@ def assistant_chat(request):
       2. Local CSV/API nutrition lookup (extract food name from question)
       3. Spoonacular Chatbot (conversational fallback)
     """
+    print("[VIEW] assistant_chat POST received")
     try:
         data = json.loads(request.body)
         question = (data.get("message") or "").strip()
@@ -830,11 +836,22 @@ def save_to_history(request):
     return JsonResponse({"success": False, "error": "Invalid method"})
 
 
+@login_required
 def reset_analysis(request):
     """
-    Clear session and start over
+    Clear only food-related session keys.
+    Never touch auth session keys — that would log the user out.
     """
-    request.session.flush()
+    FOOD_SESSION_KEYS = [
+        "confirmed_food",
+        "uploaded_image",
+        "assistant_history",
+        "manual_query",
+    ]
+    for key in FOOD_SESSION_KEYS:
+        request.session.pop(key, None)   # safe delete — ignores missing keys
+
+    request.session.modified = True
     return redirect("upload_food")
 
 
@@ -1063,6 +1080,7 @@ def parse_portion_api(request):
     """
     Parse user's portion description and calculate nutrition
     """
+    print("[VIEW] parse_portion_api called")
     if request.method != "POST":
         return JsonResponse({"error": "Invalid method"}, status=400)
 

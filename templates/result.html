@@ -45,15 +45,8 @@
         <div class="confidence-badge--high">✓ High Confidence ({{ confidence }}%)</div>
         {% endif %}
 
-        {% if detection_method == "CUSTOM" %}
-        <span class="mm-pill mm-pill--info" style="margin-left: 8px; font-size: 11px;">
-          🧠 Custom Model
-        </span>
-        {% elif detection_method == "CLIP" %}
-        <span class="mm-pill" style="margin-left: 8px; font-size: 11px;">
-          🔍 CLIP Fallback
-        </span>
-        {% endif %}
+        {# Hide specific model names from users; show a generic AI badge instead #}
+        <span class="mm-pill" style="margin-left: 8px; font-size: 11px;"> Model</span>
       </div>
 
       {% if needs_confirmation %}

@@ -26,8 +26,7 @@
         <div class="mm-kpi">
             <div>
                 <div class="mm-kpi__label">Calories Today</div>
-                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_calories|floatformat:0 }}{% else %}0{% endif
-                    %}</div>
+                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_calories|floatformat:0 }}{% else %}0{% endif %}</div>
                 <div class="mm-kpi__meta">kcal</div>
             </div><span class="mm-pill">Today</span>
         </div>
@@ -39,8 +38,7 @@
                 <div class="mm-kpi__label">Remaining</div>
                 <div class="mm-kpi__value">{{ remaining_calories|floatformat:0 }}</div>
                 <div class="mm-kpi__meta">kcal to target</div>
-            </div><span class="mm-pill mm-pill--{% if remaining_status == 'On track' %}good{% else %}warn{% endif %}">{{
-                remaining_status }}</span>
+            </div><span class="mm-pill mm-pill--{% if remaining_status == 'On track' %}good{% else %}warn{% endif %}">{{ remaining_status }}</span>
         </div>
     </div>
 
@@ -58,11 +56,9 @@
         <div class="mm-kpi">
             <div>
                 <div class="mm-kpi__label">Carbs</div>
-                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_carbs|floatformat:0 }}g{% else %}0g{% endif
-                    %}</div>
+                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_carbs|floatformat:0 }}g{% else %}0g{% endif %}</div>
                 <div class="mm-kpi__meta">Target: {{ carbs_target }}g</div>
-            </div><span class="mm-pill mm-pill--{% if carbs_status == 'Balanced' %}info{% else %}warn{% endif %}">{{
-                carbs_status }}</span>
+            </div><span class="mm-pill mm-pill--{% if carbs_status == 'Balanced' %}info{% else %}warn{% endif %}">{{ carbs_status }}</span>
         </div>
         <div class="mm-mini" style="margin-top:14px">
             <div class="mm-mini__bar"><span
@@ -75,12 +71,9 @@
         <div class="mm-kpi">
             <div>
                 <div class="mm-kpi__label">Protein</div>
-                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_protein|floatformat:0 }}g{% else %}0g{%
-                    endif %}</div>
+                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_protein|floatformat:0 }}g{% else %}0g{% endif %}</div>
                 <div class="mm-kpi__meta">Target: {{ protein_target }}g</div>
-            </div><span
-                class="mm-pill mm-pill--{% if protein_status == 'Strong' %}good{% elif protein_status == 'Balanced' %}info{% else %}warn{% endif %}">{{
-                protein_status }}</span>
+            </div><span class="mm-pill mm-pill--{% if protein_status == 'Strong' %}good{% elif protein_status == 'Balanced' %}info{% else %}warn{% endif %}">{{ protein_status }}</span>
         </div>
         <div class="mm-mini" style="margin-top:14px">
             <div class="mm-mini__bar"><span
@@ -93,8 +86,7 @@
         <div class="mm-kpi">
             <div>
                 <div class="mm-kpi__label">Fat</div>
-                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_fat|floatformat:0 }}g{% else %}0g{% endif %}
-                </div>
+                <div class="mm-kpi__value">{% if has_food_logged %}{{ today_fat|floatformat:0 }}g{% else %}0g{% endif %}</div>
                 <div class="mm-kpi__meta">Target: {{ fat_target }}g</div>
             </div><span class="mm-pill {% if fat_status == 'Stable' %}mm-pill--info{% endif %}">{{ fat_status }}</span>
         </div>
@@ -206,8 +198,7 @@
         <div class="mm-grid" style="margin-top:12px">
             <div class="mm-card" style="grid-column:span 4;box-shadow:none">
                 <div class="mm-kpi__label">Weight</div>
-                <div class="mm-kpi__value" style="font-size:22px">{% if profile.weight %}{{ profile.weight }} kg{% else
-                    %}-{% endif %}</div>
+                <div class="mm-kpi__value" style="font-size:22px">{% if profile.weight %}{{ profile.weight }} kg{% else %}-{% endif %}</div>
                 <div class="mm-kpi__meta">Current weight</div>
             </div>
             <div class="mm-card" style="grid-column:span 4;box-shadow:none">
