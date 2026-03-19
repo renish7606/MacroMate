@@ -79,7 +79,7 @@
       {% endif %}
 
       <!-- SLOT 1 -->
-      <div style="position:relative; margin-bottom: 10px;">
+      <div style="position:relative; margin-bottom: 10px; min-width: 0;">
         <label class="mm-label">Food 1 <span style="color:var(--danger)">*</span></label>
         <input type="text" name="manual_food_1" id="manualFood1" class="mm-input" placeholder="e.g. samosa"
           oninput="showSuggestions(this, 'suggestions1')" onkeydown="handleKey(event, 'suggestions1', 'manualFood1')"
@@ -88,7 +88,7 @@
       </div>
 
       <!-- SLOT 2 (optional) -->
-      <div style="position:relative; margin-bottom: 10px;">
+      <div style="position:relative; margin-bottom: 10px; min-width: 0;">
         <label class="mm-label">Food 2 <span style="color:var(--text-muted)">(optional)</span></label>
         <input type="text" name="manual_food_2" id="manualFood2" class="mm-input" placeholder="e.g. pizza"
           oninput="showSuggestions(this, 'suggestions2')" onkeydown="handleKey(event, 'suggestions2', 'manualFood2')" />
@@ -96,7 +96,7 @@
       </div>
 
       <!-- SLOT 3 (optional) -->
-      <div style="position:relative; margin-bottom: 14px;">
+      <div style="position:relative; margin-bottom: 14px; min-width: 0;">
         <label class="mm-label">Food 3 <span style="color:var(--text-muted)">(optional)</span></label>
         <input type="text" name="manual_food_3" id="manualFood3" class="mm-input" placeholder="e.g. ramen"
           oninput="showSuggestions(this, 'suggestions3')" onkeydown="handleKey(event, 'suggestions3', 'manualFood3')" />

@@ -19,7 +19,7 @@
       </div>
       <span class="mm-pill mm-pill--{% if macro_status == 'Balanced' %}good{% else %}warn{% endif %}">{{ macro_status }}</span>
     </div>
-    <div style="position:relative;height:240px;margin-top:12px;"><canvas id="macroPatternChart"></canvas></div>
+    <div style="position:relative;height:240px;margin-top:12px;overflow:hidden;"><canvas id="macroPatternChart"></canvas></div>
   </div>
 
   <div class="mm-card" style="grid-column: span 5;">
@@ -30,7 +30,7 @@
       </div>
       <span class="mm-pill mm-pill--{% if sugar_status == 'Warning' %}warn{% else %}good{% endif %}">{{ sugar_status }}</span>
     </div>
-    <div style="position:relative;height:180px;margin-top:12px;"><canvas id="sugarChart"></canvas></div>
+    <div style="position:relative;height:180px;margin-top:12px;overflow:hidden;"><canvas id="sugarChart"></canvas></div>
   </div>
 
   <div class="mm-card" style="grid-column: span 7;">
@@ -80,11 +80,11 @@
     <div class="mm-grid" style="margin-top: 12px;">
       <div class="mm-card" style="grid-column: span 12; box-shadow: none;">
         <div class="mm-kpi__label">Total calories vs target</div>
-        <div style="position:relative;height:140px;margin-top:10px;"><canvas id="weeklyCalChart"></canvas></div>
+        <div style="position:relative;height:140px;margin-top:10px;overflow:hidden;"><canvas id="weeklyCalChart"></canvas></div>
       </div>
       <div class="mm-card" style="grid-column: span 12; box-shadow: none;">
         <div class="mm-kpi__label">Nutrient balance overview</div>
-        <div style="position:relative;height:140px;margin-top:10px;"><canvas id="balanceChart"></canvas></div>
+        <div style="position:relative;height:140px;margin-top:10px;overflow:hidden;"><canvas id="balanceChart"></canvas></div>
       </div>
     </div>
   </div>

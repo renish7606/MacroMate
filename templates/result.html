@@ -10,7 +10,7 @@
     ← Analyze another
   </a>
 
-  <div class="result-grid" style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 32px; align-items: start;">
+  <div class="result-grid" style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 32px; align-items: start; min-width: 0;">
     <style>
       @media (max-width: 768px) {
         .result-grid {
@@ -46,7 +46,7 @@
         {% endif %}
 
         {# Hide specific model names from users; show a generic AI badge instead #}
-        <span class="mm-pill" style="margin-left: 8px; font-size: 11px;"> Model</span>
+        <span class="mm-pill" style="margin-left: 8px; font-size: 11px;">🤖 AI Detection</span>
       </div>
 
       {% if needs_confirmation %}

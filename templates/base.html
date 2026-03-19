@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
   <title>
     {% block head_title %}
@@ -23,7 +23,7 @@
   <header class="mm-nav">
     <div class="mm-nav__inner">
       <a class="mm-brand" href="{% url 'dashboard' %}">
-        <span class="mm-brand__mark" aria-hidden="true"></span>
+        <img src="{% static 'images/MacroMate.png' %}" alt="MacroMate Logo" class="mm-brand__logo" style="height: 70px; width: auto; object-fit: contain; border-radius: 6px; margin-right: 8px;">
         <span class="mm-brand__text">MacroMate</span>
       </a>
 
