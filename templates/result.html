@@ -45,8 +45,20 @@
         <div class="confidence-badge--high">✓ High Confidence ({{ confidence }}%)</div>
         {% endif %}
 
-        {# Hide specific model names from users; show a generic AI badge instead #}
-        <span class="mm-pill" style="margin-left: 8px; font-size: 11px;">🤖 AI Detection</span>
+        <!-- Model source badge -->
+        {% if detection_method == "CUSTOM" %}
+        <span class="mm-pill mm-pill--good" style="margin-left:8px;font-size:11px;">
+          🧠 Custom Model
+        </span>
+        {% elif detection_method == "CLIP" %}
+        <span class="mm-pill mm-pill--info" style="margin-left:8px;font-size:11px;">
+          🔍 CLIP Fallback
+        </span>
+        {% elif detection_method %}
+        <span class="mm-pill" style="margin-left:8px;font-size:11px;">
+          {{ detection_method }}
+        </span>
+        {% endif %}
       </div>
 
       {% if needs_confirmation %}
@@ -56,7 +68,15 @@
         </p>
 
         <input type="text" id="manual-food-input" placeholder="Type food name (e.g. pizza)" value="{{ suggested_hint }}"
-          autofocus oninput="searchFood(this.value)" class="mm-input" style="margin-bottom: 12px;">
+          autofocus oninput="searchFood(this.value)"
+          onkeypress="if(event.key==='Enter'){ confirmFood(this.value); }"
+          class="mm-input" style="margin-bottom: 12px;">
+
+        <button type="button" class="mm-btn mm-btn--primary"
+          style="margin-bottom: 12px;"
+          onclick="confirmFood(document.getElementById('manual-food-input').value)">
+          Confirm Food
+        </button>
 
         <div id="food-results" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
       </div>
@@ -195,11 +215,13 @@
 
   /* ---------- CONFIRM FOOD ---------- */
   function confirmFood(food) {
+    const normalized = (food || "").trim();
+    if (!normalized) return;
     fetch("{% url 'confirm_food' %}", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
-      body: JSON.stringify({ food })
+      body: JSON.stringify({ food: normalized })
     }).then(() => {
       window.location.href = "{% url 'upload_food' %}";
     });

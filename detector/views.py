@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.core.files.storage import FileSystemStorage
 from datetime import datetime
-from .ml_food_predictor import predict_food
+from .ml_food_predictor import predict_food, get_nutrition_from_model_db
 from .food_api import fetch_food_info
 from .food_similarity import (
     CSV_FOODS,
@@ -204,7 +204,20 @@ def upload_food(request):
                 ml_result  = predict_food(image_path)
                 food_key   = ml_result["food_name"]
                 confidence = ml_result["confidence"]
-                nutrition  = get_nutrition(food_key) or {}
+                method     = ml_result.get("method", "UNKNOWN")
+
+                # Nutrition source routing:
+                # CUSTOM -> class_names/label_nutrition_mapping
+                # CLIP   -> Spoonacular API
+                if method == "CUSTOM":
+                    nutrition = get_nutrition_from_model_db(food_key) or {}
+                elif method == "CLIP":
+                    nutrition = get_nutrition_from_api(food_key.replace("_", " ")) or {}
+                    # Keep the app usable if API quota/network fails.
+                    if not nutrition:
+                        nutrition = get_nutrition(food_key) or {}
+                else:
+                    nutrition = get_nutrition(food_key) or {}
 
                 results.append({
                     "name":       food_key.replace("_", " ").title(),
@@ -221,7 +234,7 @@ def upload_food(request):
                     "vitamin_c":  nutrition.get("vitamin_c", 0),
                     "calcium":    nutrition.get("calcium",   0),
                     "iron":       nutrition.get("iron",      0),
-                    "detection_method": ml_result.get("method", "UNKNOWN"),
+                    "detection_method": method,
                 })
             except Exception as e:
                 print(f"   ⚠️ Error processing image {idx}: {e}")
@@ -234,9 +247,21 @@ def upload_food(request):
 
         # ── SINGLE IMAGE → legacy result.html ──
         if len(results) == 1:
-            r  = results[0]
-            HIGH = 80.0
-            if r["confidence"] >= HIGH:
+            r = results[0]
+            method = r.get("detection_method", "UNKNOWN")
+            # Custom model is your primary trained model, so allow lower
+            # confidence than CLIP before asking manual confirmation.
+            custom_confirm_threshold = 30.0
+            clip_confirm_threshold = 65.0
+            unknown_confirm_threshold = 80.0
+            if method == "CUSTOM":
+                confirm_threshold = custom_confirm_threshold
+            elif method == "CLIP":
+                confirm_threshold = clip_confirm_threshold
+            else:
+                confirm_threshold = unknown_confirm_threshold
+
+            if r["confidence"] >= confirm_threshold:
                 return render(request, "result.html", {
                     "food":               r["name"],
                     "calories":           r["calories"],
