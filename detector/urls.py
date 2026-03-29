@@ -34,6 +34,7 @@ from .views import (
     download_today_pdf,
     get_food_suggestions_api,
     meal_history,
+    delete_history_item,
     confirm_food_and_log,
     parse_portion_api,
     manual_food_lookup,
@@ -49,6 +50,7 @@ urlpatterns = [
     path("profile/", profile, name="profile"),
     path("reset/", reset_analysis, name="reset_analysis"),
     path("history/", meal_history, name="meal_history"),
+    path("history/delete/<int:meal_id>/", delete_history_item, name="delete_history_item"),
     path("save-history/", save_to_history, name="save_to_history"),
     path("api/confirm-food/", confirm_food_and_log, name="confirm_food"),
     path("api/food-suggestions/", get_food_suggestions_api),
@@ -57,4 +59,3 @@ urlpatterns = [
     path("api/parse-portion/", parse_portion_api, name="parse_portion_api"),
     path("manual-food/", manual_food_lookup, name="manual_food_lookup"),
 ]
-

@@ -1,5 +1,6 @@
 import csv
 import os
+import re
 import requests
 from django.conf import settings
 import json
@@ -26,6 +27,7 @@ from django.db.models import Sum, Avg
 from .models import UserProfile, FoodHistory
 from datetime import timedelta
 import json as json_module
+from zoneinfo import ZoneInfo
 
 
 @login_required
@@ -467,6 +469,90 @@ def _looks_food_related(text):
     return any(kw in t for kw in FOOD_KEYWORDS)
 
 
+def _normalize_nutrition_typos(text):
+    """Normalize common food/nutrition query typos."""
+    normalized = (text or "").lower()
+    replacements = {
+        "protien": "protein",
+        "protine": "protein",
+        "calarie": "calorie",
+        "calori": "calorie",
+        "fibar": "fiber",
+    }
+    for wrong, correct in replacements.items():
+        normalized = re.sub(rf"\b{re.escape(wrong)}\b", correct, normalized)
+    return " ".join(normalized.split())
+
+
+def _extract_food_candidate(question):
+    """
+    Extract likely food phrase from user question.
+    Returns cleaned food name or None.
+    """
+    q = (question or "").lower().strip()
+    if not q:
+        return None
+
+    patterns = [
+        r'(?:how\s+(?:many|much)\s+)?(?:calories?|calorie|kcal|protein|carbs?|fat|nutrition|macro|macros|fiber|sugar|vitamin\w*)\s+(?:in|of|for)\s+(?:\d+\s*)?',
+        r'(?:what\s+(?:is|are)\s+(?:the\s+)?)?(?:calories?|calorie|kcal|protein|carbs?|fat|nutrition|macro|macros)\s+(?:in|of|for)\s+(?:\d+\s*)?',
+        r'(?:tell\s+me\s+(?:about|the)\s+)?(?:nutrition|calories?|macros?)\s+(?:of|in|for)\s+(?:\d+\s*)?',
+        r'(?:how\s+(?:many|much)\s+)?(?:calories?|calorie|kcal|protein|carbs?|fat)\s+(?:does|do)\s+(?:\d+\s*)?',
+    ]
+
+    food_name = None
+    for pat in patterns:
+        match = re.search(pat, q)
+        if match:
+            food_name = q[match.end():].strip()
+            break
+
+    if not food_name:
+        simple = re.sub(
+            r'\b(how|many|much|what|is|are|the|tell|me|about|does|do|have|has|'
+            r'calories?|calorie|kcal|protein|carbs?|fat|nutrition|macro|macros|'
+            r'fiber|sugar|vitamin\w*|in|of|for|per|serving|piece|pieces|'
+            r'a|an|one|two|three|1|2|3|4|5|6|7|8|9|0)\b',
+            ' ',
+            q,
+        )
+        food_name = " ".join(simple.split()).strip()
+
+    if not food_name:
+        return None
+
+    food_name = re.sub(r'^[?.!,\s]+|[?.!,\s]+$', '', food_name).strip()
+    return food_name if len(food_name) >= 2 else None
+
+
+def _sanitize_nutrition(nutrition):
+    """
+    Ensure nutrition payload has numeric macro fields and at least calories.
+    Returns cleaned dict or None if unusable.
+    """
+    if not nutrition or not isinstance(nutrition, dict):
+        return None
+
+    def to_num(value):
+        try:
+            if value is None or value == "":
+                return 0.0
+            return float(value)
+        except Exception:
+            return 0.0
+
+    cleaned = {
+        "calories": to_num(nutrition.get("calories", 0)),
+        "protein": to_num(nutrition.get("protein", 0)),
+        "carbs": to_num(nutrition.get("carbs", 0)),
+        "fat": to_num(nutrition.get("fat", 0)),
+    }
+
+    if cleaned["calories"] <= 0 and cleaned["protein"] <= 0 and cleaned["carbs"] <= 0 and cleaned["fat"] <= 0:
+        return None
+    return cleaned
+
+
 @login_required
 @require_POST
 @csrf_exempt
@@ -498,13 +584,14 @@ def assistant_chat(request):
         if not api_key:
             return JsonResponse({"reply": "Assistant is not configured. Add SPOONACULAR_API_KEY to .env."})
 
+        normalized_question = _normalize_nutrition_typos(question)
         reply = None
 
         # ── Strategy 1: Quick Answer (best for factual nutrition Qs) ──
         try:
             qa_resp = requests.get(
                 "https://api.spoonacular.com/recipes/quickAnswer",
-                params={"q": question, "apiKey": api_key},
+                params={"q": normalized_question, "apiKey": api_key},
                 timeout=10,
             )
             if qa_resp.status_code == 200:
@@ -518,7 +605,7 @@ def assistant_chat(request):
 
         # ── Strategy 2: Local CSV/API nutrition lookup ──
         if not reply:
-            reply = _try_local_nutrition_lookup(question)
+            reply = _try_local_nutrition_lookup(normalized_question)
 
         # ── Strategy 3: Chatbot (conversational fallback) ──
         if not reply:
@@ -565,80 +652,57 @@ def _try_local_nutrition_lookup(question):
     in the local CSV nutrition database.
     Returns a formatted answer string or None.
     """
-    import re
-
-    q = question.lower().strip()
-
-    # Strip common question patterns to isolate the food name
-    # e.g. "how many calories in 2 samosa" → "samosa"
-    #      "calorie in 1 samosa"            → "samosa"
-    #      "nutrition of roti"              → "roti"
-    patterns = [
-        r'(?:how\s+(?:many|much)\s+)?(?:calories?|calorie|kcal|protein|carbs?|fat|nutrition|macro|macros|fiber|sugar|vitamin\w*)\s+(?:in|of|for)\s+(?:\d+\s*)?',
-        r'(?:what\s+(?:is|are)\s+(?:the\s+)?)?(?:calories?|calorie|kcal|protein|carbs?|fat|nutrition|macro|macros)\s+(?:in|of|for)\s+(?:\d+\s*)?',
-        r'(?:tell\s+me\s+(?:about|the)\s+)?(?:nutrition|calories?|macros?)\s+(?:of|in|for)\s+(?:\d+\s*)?',
-        r'(?:how\s+(?:many|much)\s+)?(?:calories?|calorie|kcal|protein|carbs?|fat)\s+(?:does|do)\s+(?:\d+\s*)?',
-    ]
-
-    food_name = None
-    for pat in patterns:
-        match = re.search(pat, q)
-        if match:
-            food_name = q[match.end():].strip()
-            break
-
-    # Also try simple patterns: "samosa calories", "about samosa"
+    food_name = _extract_food_candidate(question)
     if not food_name:
-        simple = re.sub(
-            r'\b(how|many|much|what|is|are|the|tell|me|about|does|do|have|has|'
-            r'calories?|calorie|kcal|protein|carbs?|fat|nutrition|macro|macros|'
-            r'fiber|sugar|vitamin\w*|in|of|for|per|serving|piece|pieces|'
-            r'a|an|one|two|three|1|2|3|4|5|6|7|8|9|0)\b',
-            ' ', q
-        )
-        food_name = ' '.join(simple.split()).strip()
-
-    if not food_name or len(food_name) < 2:
         return None
 
-    # Clean up: remove trailing punctuation, question marks
-    food_name = re.sub(r'[?.!,]+$', '', food_name).strip()
+    lookup_candidates = [food_name, food_name.replace(" ", "_")]
 
-    # Try exact match first, then partial match
-    nutrition = get_nutrition(food_name)
+    # Common practical aliases for queries where exact phrase is not in DB.
+    low = food_name.lower()
+    if "burger" in low:
+        lookup_candidates.extend(["burger", "hamburger"])
+    if "pizza" in low:
+        lookup_candidates.append("pizza")
+    if "sushi" in low:
+        lookup_candidates.append("sushi")
+
+    # 1) Local CSV/JSON lookup first (fast and stable)
+    nutrition = None
+    for candidate in lookup_candidates:
+        nutrition = _sanitize_nutrition(get_nutrition(candidate))
+        if nutrition:
+            food_name = candidate.replace("_", " ")
+            break
 
     if not nutrition:
-        # Try with underscores (CSV format)
-        nutrition = get_nutrition(food_name.replace(' ', '_'))
-
-    if not nutrition:
-        # Try matching against known CSV foods
-        from .food_similarity import CSV_FOODS
         for csv_food in CSV_FOODS:
             csv_clean = csv_food.replace('_', ' ')
             if csv_clean in food_name or food_name in csv_clean:
-                nutrition = get_nutrition(csv_food)
+                nutrition = _sanitize_nutrition(get_nutrition(csv_food))
                 if nutrition:
                     food_name = csv_clean
                     break
 
-    if nutrition:
-        display = food_name.replace('_', ' ').title()
-        cal = nutrition['calories']
-        prot = nutrition['protein']
-        carbs = nutrition['carbs']
-        fat = nutrition['fat']
+    # 2) Ingredient-based API fallback
+    if not nutrition:
+        nutrition = _sanitize_nutrition(get_nutrition_from_api(food_name))
 
-        return (
-            f"{display} (per 100g serving):\n"
-            f"• Calories: {cal} kcal\n"
-            f"• Protein: {prot}g\n"
-            f"• Carbs: {carbs}g\n"
-            f"• Fat: {fat}g"
-        )
+    # 3) Broad API fallback for complex dishes
+    if not nutrition:
+        nutrition = _sanitize_nutrition(fetch_food_info(food_name))
 
-    return None
+    if not nutrition:
+        return None
 
+    display = food_name.replace('_', ' ').title()
+    return (
+        f"{display} (per 100g serving):\n"
+        f"- Calories: {nutrition.get('calories', 0)} kcal\n"
+        f"- Protein: {nutrition.get('protein', 0)}g\n"
+        f"- Carbs: {nutrition.get('carbs', 0)}g\n"
+        f"- Fat: {nutrition.get('fat', 0)}g"
+    )
 
 @login_required
 def clear_assistant_history(request):
@@ -773,20 +837,23 @@ def get_food_suggestions_api(request):
 # --------------------------------------------------
 # MEAL HISTORY
 # --------------------------------------------------
-from django.utils import timezone
-from django.contrib.auth.decorators import login_required
-from .models import FoodHistory
-
 @login_required
 def meal_history(request):
     """
-    Display user's meal history for today
+    Display user's meal history for today (IST).
     """
-    today = timezone.now().date()
+    ist = ZoneInfo("Asia/Kolkata")
+    now_ist = timezone.now().astimezone(ist)
+    today = now_ist.date()
+    day_start_ist = datetime.combine(today, datetime.min.time(), tzinfo=ist)
+    day_end_ist = day_start_ist + timedelta(days=1)
+    day_start_utc = day_start_ist.astimezone(ZoneInfo("UTC"))
+    day_end_utc = day_end_ist.astimezone(ZoneInfo("UTC"))
 
     meals = FoodHistory.objects.filter(
         user=request.user,
-        created_at__date=today
+        created_at__gte=day_start_utc,
+        created_at__lt=day_end_utc,
     ).order_by("-created_at")
 
     # Calculate totals
@@ -806,6 +873,28 @@ def meal_history(request):
     }
 
     return render(request, "meal_history.html", context)
+
+
+@login_required
+@require_POST
+def delete_history_item(request, meal_id):
+    """
+    Delete a single food history row for the logged-in user.
+    Dashboard and analysis auto-update because they read FoodHistory.
+    """
+    deleted_count, _ = FoodHistory.objects.filter(
+        id=meal_id,
+        user=request.user,
+    ).delete()
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        if deleted_count:
+            return JsonResponse({"success": True})
+        return JsonResponse({"success": False, "error": "Meal not found"}, status=404)
+
+    if deleted_count:
+        return redirect("meal_history")
+    return redirect("meal_history")
 
 
 @login_required
@@ -949,7 +1038,13 @@ def download_today_pdf(request):
     from reportlab.lib import colors
 
     response = HttpResponse(content_type='application/pdf')
-    today = timezone.now().date()
+    ist = ZoneInfo("Asia/Kolkata")
+    now_ist = timezone.now().astimezone(ist)
+    today = now_ist.date()
+    day_start_ist = datetime.combine(today, datetime.min.time(), tzinfo=ist)
+    day_end_ist = day_start_ist + timedelta(days=1)
+    day_start_utc = day_start_ist.astimezone(ZoneInfo("UTC"))
+    day_end_utc = day_end_ist.astimezone(ZoneInfo("UTC"))
     response['Content-Disposition'] = f'attachment; filename="MacroMate_{today}.pdf"'
 
     p = canvas.Canvas(response, pagesize=A4)
@@ -966,13 +1061,15 @@ def download_today_pdf(request):
     p.setFont("Helvetica", 11)
     p.drawString(40, height - 80, f"Date: {today.strftime('%B %d, %Y')}")
     p.drawString(40, height - 96, f"User: {request.user.username}")
+    p.drawString(40, height - 112, f"Generated at: {now_ist.strftime('%H:%M')} IST")
 
     meals = FoodHistory.objects.filter(
         user=request.user,
-        created_at__date=today
+        created_at__gte=day_start_utc,
+        created_at__lt=day_end_utc,
     ).order_by('created_at')
 
-    y = height - 130
+    y = height - 146
     total_cal = total_p = total_c = total_f = 0
 
     # Table header
@@ -990,7 +1087,7 @@ def download_today_pdf(request):
 
     p.setFont("Helvetica", 10)
     for meal in meals:
-        t = timezone.localtime(meal.created_at).strftime('%H:%M')
+        t = meal.created_at.astimezone(ist).strftime('%H:%M')
         p.drawString(45,  y, meal.food[:28])
         p.drawString(240, y, t)
         p.drawString(310, y, f"{meal.calories} kcal")
@@ -1159,3 +1256,4 @@ def parse_portion_api(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
+

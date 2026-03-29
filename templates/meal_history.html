@@ -63,6 +63,11 @@
           </div>
         </div>
 
+        <form method="post" action="{% url 'delete_history_item' meal.id %}" onsubmit="return confirm('Delete this meal entry?')">
+          {% csrf_token %}
+          <button type="submit" class="btn-secondary" style="padding: 8px 12px; font-size: 12px;">Delete</button>
+        </form>
+
       </div>
       {% endfor %}
     </div>
