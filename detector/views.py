@@ -725,6 +725,13 @@ def _tdee_bmr(weight_kg, height_cm, age, gender, activity):
     return round(bmr * factors.get(activity, 1.2))
 
 
+def _apply_goal_adjustment(calories, goal):
+    """Turn maintenance calories into goal-based daily target."""
+    adjustments = {"loss": -500, "maintain": 0, "gain": 300}
+    adjusted = calories + adjustments.get(goal, 0)
+    return max(1200, round(adjusted))
+
+
 @login_required
 def profile(request):
     """
@@ -744,7 +751,7 @@ def profile(request):
     has_filled = is_filled(profile_obj)
     show_form = not has_filled or edit_mode
 
-    if request.method == "POST" and show_form:
+    if request.method == "POST":
         name = (request.POST.get("name") or "").strip()
         try:
             height = int(request.POST.get("height") or 0)
@@ -757,7 +764,8 @@ def profile(request):
         goal = request.POST.get("goal") or "maintain"
 
         if height and weight and age:
-            daily = _tdee_bmr(weight, height, age, gender, activity)
+            maintenance = _tdee_bmr(weight, height, age, gender, activity)
+            daily = _apply_goal_adjustment(maintenance, goal)
         else:
             daily = 2200
 
