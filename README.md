@@ -1,677 +1,555 @@
 # 🥗 MacroMate — AI-Powered Personalized Nutrition Assistant
 
-> A full-stack Django web application that uses computer vision and machine learning to detect food from images, analyze nutritional content, and help users track their daily calorie and macro intake.
+<div align="center">
+
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-EfficientNetV2--M-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
+![OpenAI CLIP](https://img.shields.io/badge/OpenAI-CLIP_ViT--B/32-412991?style=for-the-badge&logo=openai&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+
+**A full-stack Django web application that uses a custom-trained EfficientNetV2-M deep learning model to detect food from images, analyze nutritional content, and help users intelligently track their daily intake.**
+
+[Features](#-features) · [How It Works](#-how-it-works) · [ML Model](#-ml-model--training) · [Installation](#-installation--setup) · [Routes](#-pages--routes) · [Database](#-database-models)
+
+</div>
 
 ---
 
-## 📋 Table of Contents
+## 🌟 Overview
 
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Food Detection System](#food-detection-system)
-- [Project Structure](#project-structure)
-- [Installation & Setup](#installation--setup)
-- [Environment Variables](#environment-variables)
-- [Running the Project](#running-the-project)
-- [Pages & Routes](#pages--routes)
-- [Nutrition Data Sources](#nutrition-data-sources)
-- [AI Assistant](#ai-assistant)
-- [PDF Export](#pdf-export)
-- [Authentication](#authentication)
-- [Database Models](#database-models)
-- [Screenshots](#screenshots)
+MacroMate is a **dark-themed, premium nutrition intelligence platform** built for real-world use. At its core sits a custom-trained **EfficientNetV2-M** model (54.5M parameters, 351 food classes) trained on over 93,000 images — covering Food-101, Indian foods, and UECFood256. When the custom model is uncertain, OpenAI's **CLIP ViT-B/32** takes over as a zero-shot fallback, ensuring a result is always produced.
+
+Users upload food photos or enter food names to get instant macro and micronutrient data, compare multiple foods side-by-side, track daily intake against a personalized calorie goal (TDEE), and view 7-day trends through interactive Chart.js dashboards.
 
 ---
 
-## Overview
-
-MacroMate is a dark-themed, premium nutrition tracking platform. Users can upload food photos or enter food names manually to get instant nutritional data. The app tracks daily calorie intake, macro breakdowns (protein, carbs, fat), and provides weekly analysis with interactive charts.
-
----
-
-## Features
+## ✨ Features
 
 | Feature | Description |
 |---|---|
-| 🍕 **Food Image Detection** | Upload 1–3 food photos; AI detects the food and fetches nutrition |
-| ⚖️ **Multi-Food Comparison** | Compare up to 3 foods side-by-side with a "Best Choice" recommendation |
-| ✍️ **Manual Food Lookup** | Type food names with autocomplete to compare nutrition without images |
-| 📊 **Nutrition Dashboard** | Real-time KPIs: calories, protein, carbs, fat, sugar, fiber, vitamins |
-| 📈 **Weekly Analysis** | 7-day calorie trend, macro breakdown charts, sugar intake, nutrient balance |
-| 🤖 **Food Assistant** | Food-only AI chatbot backed by Spoonacular API for nutrition Q&A |
-| 🙍 **User Profile & TDEE** | Calculates daily calorie target using Mifflin–St Jeor + activity multipliers |
-| 🗒️ **Meal History** | Logs every saved meal with calories and macros; filterable by date |
-| 🏋️ **Exercise Tracking** | Record exercises with calories burned and duration |
-| 📄 **PDF Export** | Download today's food log or full history as a formatted PDF |
-| 🔐 **Auth** | Email/password and Google OAuth sign-in via django-allauth |
-| 🍱 **Portion Calculator** | Natural-language portion parsing ("2 slices", "half bowl") scales nutrition |
+| 🍕 **AI Food Detection** | Upload 1–3 photos; custom EfficientNetV2-M (351 classes) detects food with 94%+ confidence on trained foods |
+| ⚖️ **Multi-Food Comparison** | Compare up to 3 foods side-by-side with a smart **Best Choice** recommendation based on protein-to-calorie ratio |
+| ✍️ **Manual Food Lookup** | Type food names with live autocomplete from the local CSV database — no image needed |
+| 📊 **Nutrition Dashboard** | Real-time KPIs: calories, protein, carbs, fat, sugar, fiber, Vitamin A/C, calcium, iron — all from actual meal history |
+| 📈 **Weekly Analysis** | 7-day stacked macro bar chart, sugar trend line, nutrient balance doughnut, calories vs. target chart |
+| 🤖 **Food-Only AI Assistant** | Chatbot with 60+ keyword guardrail backed by Spoonacular Quick Answer + CSV lookup + Chatbot fallback |
+| 🧮 **TDEE Calculator** | Personalized daily calorie target using Mifflin–St Jeor BMR × activity multiplier from user profile |
+| 🍽️ **Portion Calculator** | Natural-language input ("2 slices", "half bowl") scales nutrition to the actual amount eaten |
+| 🗒️ **Meal History** | Logs every saved meal with IST-aware timestamps, calories, and macros — auto-filtered to today |
+| 📄 **PDF Export** | Download today's log or full history as a branded, formatted PDF via ReportLab |
+| 🔐 **Authentication** | Email/password + Google OAuth via django-allauth; Google account picker forced on every login |
+| 🏋️ **Exercise Tracking** | Log exercises with calories burned and duration |
 
 ---
 
-## Tech Stack
+## 🛠 Tech Stack
 
-| Layer | Technology |
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Backend** | Python 3.11+, Django 5.x | Web framework, ORM, URL routing |
+| **ML — Primary** | PyTorch + torchvision (EfficientNetV2-M) | Custom trained food detection model |
+| **ML — Fallback** | OpenAI CLIP (ViT-B/32) | Zero-shot classification for unknown foods |
+| **Frontend** | HTML5, CSS3, Vanilla JS | Dark UI design system (CSS variables) |
+| **Data Viz** | Chart.js 4 | Dashboard and analysis charts |
+| **Database** | SQLite (dev) / PostgreSQL-ready | All user and nutrition data |
+| **Auth** | django-allauth | Email + Google OAuth |
+| **Nutrition API** | Spoonacular API | Live nutrition lookup + AI assistant |
+| **PDF** | ReportLab | Branded food history PDF export |
+| **Image Processing** | Pillow (PIL) | Image loading and RGB preprocessing |
+| **Fonts** | DM Mono, Inter (Google Fonts) | Display and body typography |
+| **Training Hardware** | NVIDIA GeForce RTX 3050 6GB | Mixed-precision GPU training (AMP) |
+
+---
+
+## 🧠 ML Model & Training
+
+MacroMate's food detection system is built around a **custom-trained EfficientNetV2-M** model — not a generic pretrained classifier. Here are the full details.
+
+### Architecture
+
+```
+Model:       EfficientNetV2-M (torchvision)
+Parameters:  54,529,875 (~54.5M)
+Classes:     351 food categories
+Input size:  480 × 480 pixels (RGB)
+Normalize:   ImageNet mean=[0.485, 0.456, 0.406] std=[0.229, 0.224, 0.225]
+Head:        Dropout → Linear(1280, hidden) → ReLU → Dropout → Linear(hidden, 351)
+```
+
+### Training Strategy — Two-Phase Approach
+
+| Phase | Epochs | Learning Rate | Trainable Params | Best Val Acc |
+|---|---|---|---|---|
+| **A — Head Warmup** | 5 | 0.0003 | Classifier only (backbone frozen) | 29.6% |
+| **B — Full Fine-Tuning** | 30 | Backbone 1e-05 · Head 0.0001 | All layers | **73.2%** *(epoch 10, still training)* |
+
+**Expected final accuracy: 88–93% top-1 · 96–98% top-5**
+
+### Dataset
+
+| Split | Images |
 |---|---|
-| **Backend** | Python 3.11+, Django 5.x |
-| **ML / CV** | TensorFlow / Keras (EfficientNet), OpenAI CLIP (ViT-B/32) |
-| **Frontend** | HTML5, CSS3 (custom design system), Vanilla JS, Chart.js 4 |
-| **Database** | SQLite (development) / PostgreSQL (production-ready) |
-| **Auth** | django-allauth (email + Google OAuth) |
-| **APIs** | Spoonacular Food API |
-| **PDF** | ReportLab |
-| **Fonts** | Inter, DM Mono (Google Fonts) |
+| Training | 93,661 |
+| Validation | 20,103 |
+| **Total** | **113,764** |
+
+**Sources:** Food-101 (101 classes) · Indian foods (samosa, biryani, dosa, idli, vada, pakoda, paneer tikka, jalebi, kachori, vadapav, cholebhature, dhokla, pav bhaji…) · UECFood256
+
+### Training Setup
+
+```
+Hardware:   NVIDIA GeForce RTX 3050 6GB Laptop GPU (CUDA)
+Precision:  Mixed precision via torch.cuda.amp (AMP)
+Loss:       CrossEntropyLoss with class weights (handles imbalance)
+Scaler:     GradScaler (AMP)
+Checkpoint: Saves best_model.pt whenever val accuracy improves
+Epoch time: ~30 min/epoch on RTX 3050
+```
+
+### Phase B Progress
+
+| Epoch | Train Acc | Val Acc |
+|---|---|---|
+| 1/30 | 49.8% | 56.8% |
+| 3/30 | 72.2% | 66.9% |
+| 5/30 | 79.7% | 69.9% |
+| 7/30 | 83.5% | 72.5% |
+| **10/30** | **85.3%** | **73.2% ← best** |
+
+### Verified Inference Results (standalone script)
+
+```
+Pizza     → 94.6% confidence  →  308 kcal · 12.7g protein · 36g carbs · 12.6g fat
+Hamburger → 82.2% confidence  →  255 kcal · 12.9g protein · 28.7g carbs · 9.9g fat
+```
+
+### Hybrid Detection Pipeline
+
+```
+Upload image
+      │
+      ▼
+EfficientNetV2-M (best_model.pt)
+  54.5M params │ 351 classes │ 480×480 input
+      │
+      ├─ confidence ≥ 40%  ──────────────► Custom model WINS
+      │                                    Nutrition: label_nutrition_mapping.json
+      │
+      ├─ 20–40% + food in nutrition DB ──► Custom model WINS
+      │                                    (known food, reliable enough)
+      │
+      └─ confidence < 20%  ──────────────► CLIP ViT-B/32 fallback
+                                           Nutrition: Spoonacular API
+                                                │
+                                                └─ CLIP < 25% ──► Manual confirmation
+                                                                   + CSV autocomplete
+```
+
+> **Why EfficientNetV2-M?** Its confidence of 82–94% on trained foods comes from softmax over 351 classes — far more meaningful than CLIP's "100%" which is softmax over only ~80 labels.
+
+### Model Files
+
+```
+FoodCalorieApp/models/
+├── best_model.pt                  ← PyTorch weights (~214 MB) — gitignored
+├── class_names.json               ← 351 ordered class names (~7 KB)
+└── label_nutrition_mapping.json   ← Nested nutrition data, all 351 classes (~103 KB)
+```
 
 ---
 
-## Screenshots
+## 🔁 How It Works
 
-### 📊 Dashboard
-![Dashboard](docs/screenshots/screenshot_dashboard.png)
-> Real-time KPI cards showing daily calorie target, calories consumed, remaining budget, weekly average, macro progress bars (carbs, protein, fat), micronutrient indicators (sugar, fiber, vitamins), and a 7-day calorie trend chart.
-
----
-
-### 📸 Upload & Analyze Food
-![Upload Food](docs/screenshots/screenshot_upload.png)
-> Drag-and-drop upload zone supporting up to 3 food photos for side-by-side comparison. Alternatively, type up to 3 food names in the manual entry slots with live autocomplete powered by the local nutrition database.
-
----
-
-### 📈 Nutrition Insights & Analysis
-![Analysis](docs/screenshots/screenshot_analysis.png)
-> 7-day stacked bar chart for macronutrient patterns, sugar intake trend line, micronutrient deficiency summary (Vitamin C, Fiber, Sodium), calories vs. target bar chart, and a doughnut chart showing the overall nutrient balance.
-
----
-
-## How It Works
-
-MacroMate's workflow is designed around three core user journeys: **detecting food from a photo**, **looking up food manually**, and **tracking nutrition over time**.
-
-### 🔁 End-to-End Workflow
+### End-to-End Workflow
 
 ```
 User signs up / logs in
          │
          ▼
-  ┌──────────────────────────────────┐
-  │         Upload Food Page         │
-  │  ┌────────────┐  ┌────────────┐  │
-  │  │ Upload 1–3 │  │ Type 1–3  │  │
-  │  │  photos    │  │ food names │  │
-  │  └─────┬──────┘  └─────┬──────┘  │
-  └────────│───────────────│──────────┘
-           │               │
-           ▼               ▼
-    AI Detection      CSV / Fuzzy
-    (ML Pipeline)     Name Match
-           │               │
-           └───────┬───────┘
-                   │
-                   ▼
-         Nutrition Lookup
-      (JSON → API → CSV fallback)
-                   │
-         ┌─────────┴─────────┐
-         │  Single food?     │  Multiple foods?
-         ▼                   ▼
-    result.html        multi_result.html
-    (full detail)      (side-by-side +
-                        best choice)
-                   │
-                   ▼
-         User enters portion size
-         ("2 slices", "half bowl")
-                   │
-                   ▼
-         Portion Parser → scaled
-         calories & macros
-                   │
-                   ▼
-         "Save to History" button
-                   │
-                   ▼
-         FoodHistory record saved
-         to database for this user
-                   │
-                   ▼
-         Dashboard & Analysis
-         update automatically
+  ┌──────────────────────────────────────┐
+  │           Upload Food Page           │
+  │  ┌─────────────┐  ┌───────────────┐  │
+  │  │ Upload 1–3  │  │  Type 1–3    │  │
+  │  │   photos    │  │  food names  │  │
+  │  └──────┬──────┘  └──────┬───────┘  │
+  └─────────│────────────────│───────────┘
+            │                │
+            ▼                ▼
+   EfficientNetV2-M      CSV Fuzzy Match
+   + CLIP fallback       + Autocomplete
+            │                │
+            └────────┬───────┘
+                     │
+                     ▼
+           Nutrition Lookup
+    (JSON → Spoonacular API → CSV)
+                     │
+          ┌──────────┴──────────┐
+      1 food                2–3 foods
+          ▼                    ▼
+    result.html         multi_result.html
+    (nutrition          (side-by-side +
+     panel + chat)       Best Choice)
+                     │
+                     ▼
+         Portion input ("2 slices")
+                     │
+                     ▼
+         Portion Parser → scaled nutrition
+                     │
+                     ▼
+         Save to History → FoodHistory DB
+                     │
+                     ▼
+         Dashboard & Analysis auto-update
 ```
 
 ---
 
 ### 🍕 Step 1 — Upload or Enter Food
 
-Navigate to **Upload Food**. You have two options:
+Navigate to **Upload Food**. Two parallel input methods:
 
 **Option A — Image Upload**
-- Drag and drop or click to select up to **3 food photos** (JPG/PNG)
-- Images are accumulated one-by-one; a thumbnail preview is shown for each
-- Click **Analyze Food** to submit
+- Drag-and-drop or click to select up to **3 food photos** (JPG/PNG)
+- Images accumulate via JavaScript `DataTransfer` API with thumbnail previews
+- Add photos one-by-one across multiple browse dialogs — previous selections are preserved
+- Click **Analyze Food** to submit all
 
 **Option B — Manual Entry**
-- Type food names into the 3 labelled slots
-- Each slot has **live autocomplete** — it queries the local food database as you type
-- Use arrow keys to navigate suggestions, Enter to select, Escape to dismiss
+- Type food names into 3 labelled slots with **live autocomplete** from the local CSV database
+- Arrow keys navigate suggestions, Enter to select, Escape to dismiss
 - Click **Compare Foods** to submit
 
 ---
 
-### 🤖 Step 2 — Food Detection (Image path only)
+### 🤖 Step 2 — Food Detection (Image path)
 
-When photos are submitted, each image passes through the **hybrid ML pipeline**:
+Each image passes through the hybrid ML pipeline:
 
-| Step | What happens |
+| Step | Detail |
 |---|---|
-| **Preprocess** | Image resized to 224×224, EfficientNet normalization applied |
-| **Custom model** | `final_model.h5` runs inference; confidence checked against 55% threshold |
-| **CLIP fallback** | If custom model is unavailable or low confidence, CLIP zero-shot runs |
-| **Manual confirm** | If both models are uncertain, user is shown a confirmation prompt with autocomplete |
+| **Preprocess** | Resize to 480×480, convert RGB, ImageNet normalize, unsqueeze batch dim |
+| **EfficientNetV2-M** | `best_model.pt` inference → softmax over 351 classes |
+| **Win condition 1** | Confidence ≥ 40% → custom model result accepted |
+| **Win condition 2** | Confidence 20–40% AND food exists in `label_nutrition_mapping.json` → accepted |
+| **CLIP fallback** | Confidence < 20% → CLIP ViT-B/32 zero-shot over ~80 food prompts |
+| **Manual confirm** | Both fail → confirmation prompt with autocomplete |
 
-The terminal logs every decision: which model was used, what food was detected, and the confidence score.
+Terminal logs every decision — model used, food detected, confidence score, and nutrition lookup result.
 
 ---
 
 ### 🥗 Step 3 — Nutrition Lookup
 
-Once a food name is known (from detection or manual entry), nutrition is fetched via a tiered lookup:
+Once a food name is confirmed, nutrition is fetched through a 3-tier cascade:
 
 ```
-1. nutrition_lookup.json  ←  richest data (fiber, vitamins, calcium, iron)
-        │ not found?
-        ▼
-2. Spoonacular API         ←  live data, used when USE_API_NUTRITION = True
-        │ not found?
-        ▼
-3. calories.csv            ←  local fallback, always available offline
+Priority 1: label_nutrition_mapping.json   ← offline, instant, 351 foods
+            (nutrition nested under "nutrition_data" key)
+                  │ not found?
+                  ▼
+Priority 2: Spoonacular API                ← live, used for CLIP foods or when
+            (always used for CLIP results)   USE_API_NUTRITION = True
+                  │ not found?
+                  ▼
+Priority 3: data/calories.csv              ← always available offline, 105 foods
 ```
 
 ---
 
 ### ⚖️ Step 4 — Single vs. Multi Result
 
-| Condition | Result page |
+| Condition | Page |
 |---|---|
-| 1 food, confidence ≥ 80% | `result.html` — full nutrition panel, no confirmation needed |
-| 1 food, confidence < 80% | `result.html` — confirmation prompt shown |
-| 2–3 foods | `multi_result.html` — side-by-side comparison, best choice highlighted in green |
+| 1 food, confidence ≥ threshold | `result.html` — full nutrition panel, model badge shown |
+| 1 food, confidence < threshold | `result.html` — confirmation prompt with autocomplete |
+| 2–3 foods | `multi_result.html` — side-by-side comparison, best choice in green |
 
-The **best choice** algorithm scores each food by: `(protein / calories × 100) - (calories / 500)` — favouring high protein-to-calorie ratio.
+**Best Choice algorithm:** `score = (protein / calories × 100) − (calories / 500)` — rewards high protein-to-calorie density.
 
 ---
 
 ### 🍽️ Step 5 — Portion Calculator
 
-On the result page, a built-in chat interface lets you type a natural-language portion:
+Built-in chat on the result page parses natural-language portions:
 
 ```
-"2 slices"  →  220g  →  scaled calories & macros
-"half bowl" →  90g   →  scaled calories & macros
-"3 scoops"  →  210g  →  scaled calories & macros
+"2 slices"   →  220g  →  scaled calories & macros
+"half bowl"  →  90g   →  scaled calories & macros
+"3 scoops"   →  210g  →  scaled calories & macros
+"150g"       →  150g  →  direct gram calculation
 ```
 
-The portion parser maps unit keywords (`slice`, `scoop`, `bowl`, `egg`, `g`, `kg`) to grams, multiplied by the quantity. After calculation, the result is displayed in the chat and marked ready to save.
+Calculated nutrition is stored and becomes the data saved to history.
 
 ---
 
 ### 💾 Step 6 — Save to History
 
-Clicking **Save to History** sends a POST request with food name, calories, and macros. A `FoodHistory` record is created for the logged-in user. The dashboard and meal history page update immediately on next load.
+**Save to History** sends a POST to `/save-history/` with food name, calories, protein, carbs, fat, and optional image URL. A `FoodHistory` record is created for the authenticated user with an IST-aware timestamp.
 
 ---
 
 ### 📊 Step 7 — Dashboard & Analysis
 
-The **Dashboard** aggregates today's `FoodHistory` entries to show:
-- Daily calorie target (from user profile TDEE)
-- Calories consumed and remaining
-- Macro progress bars with percentage of daily target
-- Estimated micronutrient indicators (sugar, fiber, vitamins, calcium, iron)
-- 7-day calorie trend chart and today's macro bar chart
+**Dashboard** aggregates today's entries:
+- Daily calorie target (TDEE from profile), calories consumed, remaining, weekly average
+- Macro progress bars with % of daily target (protein, carbs, fat)
+- Estimated micronutrient indicators (sugar, fiber, Vitamin A/C, calcium, iron)
+- 7-day calorie trend line chart + today's macro bar chart
 
-The **Analysis** page aggregates the last 7 days to show:
-- Stacked bar chart: protein, carbs, fat per day
+**Analysis** aggregates the last 7 days:
+- Stacked bar chart: protein / carbs / fat per day
 - Sugar intake trend line
-- Micronutrient deficiency/excess summary
+- Micronutrient deficiency summary (Vitamin C, fiber, sodium)
 - Weekly calories vs. target bar chart
 - Nutrient balance doughnut chart
 
 ---
 
-### 🧮 TDEE Calculation (Profile)
-
-When a user fills in their profile, MacroMate calculates their **Total Daily Energy Expenditure** using the Mifflin–St Jeor formula:
+### 🧮 TDEE Calculation
 
 ```
-Male:   BMR = (10 × weight_kg) + (6.25 × height_cm) − (5 × age) + 5
-Female: BMR = (10 × weight_kg) + (6.25 × height_cm) − (5 × age) − 161
+Male:    BMR = (10 × weight_kg) + (6.25 × height_cm) − (5 × age) + 5
+Female:  BMR = (10 × weight_kg) + (6.25 × height_cm) − (5 × age) − 161
 
-TDEE = BMR × activity_factor
-  Office (Sedentary): × 1.2
-  Moderate:           × 1.55
-  Athlete:            × 1.725
+Activity multipliers:
+  Office (Sedentary)  ×1.2
+  Moderate            ×1.55
+  Athlete             ×1.725
 ```
 
-The result becomes the user's `daily_calorie_goal` displayed throughout the app.
+TDEE is stored as `daily_calorie_goal` in `UserProfile` and drives all dashboard targets.
 
 ---
 
-### 🤖 AI Assistant Workflow
+## 📁 Project Structure
 
 ```
-User types a food/nutrition question
-              │
-              ▼
-      Keyword guardrail check
-      (is it food-related?)
-              │
-     ┌────────┴────────┐
-   Yes                 No
-     │                 │
-     ▼                 ▼
-  3-tier answer    Polite refusal
-  strategy         (off-topic guard)
-     │
-     ├─ 1. Spoonacular Quick Answer  ← best for factual Qs
-     │
-     ├─ 2. Local CSV lookup          ← extracts food name, returns structured data
-     │
-     └─ 3. Spoonacular Chatbot       ← conversational fallback
-              │
-              ▼
-        Reply shown in chat bubble
-```
-
----
-
-## Food Detection System
-
-MacroMate uses a **hybrid, two-tier detection pipeline** to ensure reliable food recognition regardless of what food is uploaded.
-
-### Tier 1 — Custom Trained Model (`final_model.h5`)
-
-The primary detector is a custom-trained **EfficientNet** model fine-tuned on the Food-101 dataset plus additional Indian food categories.
-
-**Foods recognized by the trained model include:**
-
-- All 101 Food-101 classes (pizza, sushi, ramen, hamburger, tacos, etc.)
-- Additional Indian foods: samosa, pakoda, bhaji, vada, kachori, dhokla, and more
-
-**How it works:**
-- The model preprocesses the uploaded image to 224×224 pixels
-- EfficientNet-style normalization (`[-1, 1]` range) is applied
-- The model outputs a softmax probability distribution across all classes
-- If the **top confidence ≥ 55%**, the result is accepted and nutrition is fetched immediately
-- If confidence is below the threshold, the system falls back to Tier 2
-
-```
-Confidence ≥ 55%  →  Custom model result accepted  ✅
-Confidence < 55%  →  Falls back to CLIP             ⬇
-```
-
-> **In short:** If the food is within the model's training set and the image is clear, the custom model handles detection. For foods outside the training set or ambiguous images, CLIP takes over automatically.
-
----
-
-### Tier 2 — CLIP Pre-trained Model (Fallback)
-
-If the custom model produces low-confidence results **or is unavailable**, MacroMate falls back to **OpenAI's CLIP (ViT-B/32)** zero-shot classifier.
-
-CLIP requires no retraining — it matches the image against a large list of natural-language food descriptions. This means CLIP can recognize foods that were never seen during training.
-
-**CLIP food coverage includes:**
-- All custom model foods
-- Additional items: dosa, idli, biryani, paneer tikka, butter chicken, sushi variants, dim sum, shawarma, kebab, green curry, pad thai, and dozens more
-
-**How it works:**
-- Each food label is converted to a text prompt: `"a photo of {food}"`
-- CLIP computes image-text similarity scores
-- The top match (if confidence ≥ 30%) is used as the result
-- Results below 30% are still shown but flagged for manual confirmation
-
-```
-CLIP confidence ≥ 30%  →  Result accepted  ✅
-CLIP confidence < 30%  →  User asked to confirm manually  ⚠️
-```
-
----
-
-### Tier 3 — Manual Confirmation Fallback
-
-If both models fail or return very low confidence, the UI presents a confirmation prompt with autocomplete search so the user can manually specify the correct food.
-
----
-
-### Detection Flow Summary
-
-```
-Upload Image
-     │
-     ▼
-Custom Model (final_model.h5)
-     │
-     ├── Confidence ≥ 55% ──────────────► Return result ✅
-     │
-     └── Confidence < 55% or model unavailable
-          │
-          ▼
-     CLIP (ViT-B/32) — zero-shot fallback
-          │
-          ├── Confidence ≥ 30% ──────────► Return result ✅
-          │
-          └── Confidence < 30%
-               │
-               ▼
-          Show top prediction + ask user to confirm ⚠️
-```
-
-All detection decisions and confidence scores are logged to the terminal so developers can monitor model performance in real time.
-
----
-
-## Project Structure
-
-```
-macromate/
+FoodCalorieApp/
 │
-├── detector/                   # Core Django app
-│   ├── views.py                # All page views and API endpoints
-│   ├── models.py               # FoodHistory, MealLog, UserProfile, Exercise
-│   ├── urls.py                 # URL routing
-│   ├── ml_food_predictor.py    # Hybrid ML detector (Custom + CLIP)
-│   ├── food_similarity.py      # CSV-based food lookup & related foods
-│   └── food_api.py             # Spoonacular ingredient search
+├── detector/                       # Core Django app
+│   ├── views.py                    # All page views and API endpoints
+│   ├── models.py                   # FoodHistory, MealLog, UserProfile, Exercise
+│   ├── urls.py                     # URL routing
+│   ├── ml_food_predictor.py        # Hybrid ML detector (EfficientNetV2-M + CLIP)
+│   ├── food_similarity.py          # CSV food lookup & related foods
+│   ├── food_api.py                 # Spoonacular ingredient search
+│   └── adapters.py                 # Google OAuth adapter (forced account picker)
 │
-├── services/                   # Shared service layer
-│   ├── nutrition_provider.py   # Tiered nutrition lookup orchestrator
-│   ├── api_nutrition.py        # Spoonacular nutrition API
-│   ├── csv_nutrition.py        # CSV-based nutrition fallback
-│   └── portion_parser.py       # Natural language → grams converter
+├── services/                       # Shared service layer
+│   ├── nutrition_provider.py       # 3-tier nutrition lookup orchestrator
+│   ├── api_nutrition.py            # Spoonacular nutrition API
+│   ├── csv_nutrition.py            # CSV-based nutrition fallback
+│   └── portion_parser.py           # Natural language → grams converter
 │
-├── templates/                  # Django HTML templates
-│   ├── base.html               # Navbar, footer, layout shell
-│   ├── dashboard.html          # Main dashboard with KPIs & charts
-│   ├── upload.html             # Image upload + manual food entry
-│   ├── result.html             # Single food result page
-│   ├── multi_result.html       # Multi-food comparison page
-│   ├── analysis.html           # Weekly nutrition analysis
-│   ├── assistant.html          # AI chat assistant
-│   ├── meal_history.html       # Today's food log
-│   ├── profile.html            # User profile & TDEE setup
-│   └── account/                # Auth pages (login, signup, logout)
+├── templates/                      # Django HTML templates
+│   ├── base.html                   # Navbar, footer, layout shell
+│   ├── dashboard.html              # KPI cards + Chart.js charts
+│   ├── upload.html                 # Image upload + manual entry
+│   ├── result.html                 # Single food result + portion chat
+│   ├── multi_result.html           # Multi-food comparison
+│   ├── analysis.html               # 7-day analysis charts
+│   ├── assistant.html              # AI food chatbot
+│   ├── meal_history.html           # Today's food log
+│   ├── profile.html                # User profile + TDEE calculator
+│   └── account/                    # Login, signup, logout, Google OAuth
 │
 ├── static/
-│   ├── css/style.css           # Full custom dark design system
-│   └── js/analysis_charts.js  # Chart.js rendering for analysis page
+│   ├── css/style.css               # Full dark design system (CSS variables)
+│   └── js/analysis_charts.js       # Chart.js rendering for analysis page
 │
 ├── data/
-│   ├── calories.csv            # 105 foods with calorie + macro data
-│   ├── calories_macros.csv     # Extended macro dataset
-│   └── food101_labels.txt      # Food-101 class labels
+│   ├── calories.csv                # 105 foods with calorie + macro data
+│   ├── calories_macros.csv         # Extended macro dataset
+│   └── food101_labels.txt          # Food-101 class labels
 │
-├── models/                     # ML model files (not committed to git)
-│   ├── final_model.h5          # Custom trained EfficientNet model
-│   ├── class_indices.json      # Class index → food name mapping
-│   └── nutrition_lookup.json   # Rich nutrition data (fiber, vitamins, etc.)
+├── models/                         # ML model files — NOT committed to git
+│   ├── best_model.pt               # PyTorch EfficientNetV2-M weights (~214 MB)
+│   ├── class_names.json            # 351 ordered class names
+│   └── label_nutrition_mapping.json # Nutrition data (nested under "nutrition_data")
 │
-├── scripts/
-│   └── generate_macros.py      # Utility to compute macros from calorie data
-│
-├── food_calorie_project/       # Django project settings
-│   ├── settings.py             # (gitignored — contains SECRET_KEY, API keys)
+├── food_calorie_project/           # Django project config
+│   ├── settings.py                 # Gitignored — contains SECRET_KEY, API keys
 │   ├── urls.py
 │   ├── wsgi.py
 │   └── asgi.py
 │
+├── .antigravity/skills/            # Google Antigravity IDE skill files
 ├── manage.py
-├── model_diagnostics.py        # Standalone script to test model health
 └── .gitignore
 ```
 
----
 
-## Installation & Setup
-
-### Prerequisites
-
-- Python 3.10 or 3.11
-- pip
-- (Optional) CUDA-capable GPU for faster inference
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/yourusername/macromate.git
-cd macromate
-```
-
-### 2. Create and activate a virtual environment
-
-```bash
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# macOS / Linux
-source venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
-pip install django djangorestframework django-allauth pillow tensorflow \
-            torch torchvision reportlab requests python-decouple \
-            git+https://github.com/openai/CLIP.git
-```
-
-> **Note:** TensorFlow and PyTorch are both used — TF for the custom model, PyTorch for CLIP. Install the CPU versions if you don't have a GPU.
-
-### 4. Place model files
-
-Copy your trained model files into the `models/` directory:
-
-```
-models/
-├── final_model.h5
-├── class_indices.json
-└── nutrition_lookup.json     ← optional but recommended for rich nutrition data
-```
-
-> If `final_model.h5` is missing, MacroMate will automatically use CLIP as the sole detector. The app will still work fully.
-
-### 5. Apply migrations
-
-```bash
-python manage.py migrate
-```
-
-### 6. Create a superuser (optional)
-
-```bash
-python manage.py createsuperuser
-```
 
 ---
 
-## Environment Variables
-
-Create a `food_calorie_project/settings.py` (this file is gitignored). Required settings:
-
-```python
-SECRET_KEY = 'your-django-secret-key'
-DEBUG = True
-
-SPOONACULAR_API_KEY = 'your-spoonacular-api-key'
-
-# Set to True to use Spoonacular for live nutrition data
-USE_API_NUTRITION = False
-
-# Google OAuth (via django-allauth)
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'APP': {
-            'client_id': 'your-google-client-id',
-            'secret': 'your-google-secret',
-        }
-    }
-}
-```
-
-Get a free Spoonacular API key at [spoonacular.com/food-api](https://spoonacular.com/food-api).
-
----
-
-## Running the Project
-
-```bash
-python manage.py runserver
-```
-
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
-
-### Running Model Diagnostics
-
-To verify your model is loaded and working correctly:
-
-```bash
-python model_diagnostics.py
-```
-
-This will report model architecture, output shape, confidence behavior, and top-5 predictions on a test image.
-
----
-
-## Pages & Routes
+## 📍 Pages & Routes
 
 | URL | View | Description |
 |---|---|---|
-| `/` | `dashboard` | Main nutrition dashboard |
+| `/` | `dashboard` | Main nutrition dashboard with KPIs and charts |
 | `/upload/` | `upload_food` | Upload food images or enter manually |
 | `/analysis/` | `analysis` | 7-day nutrition charts and insights |
-| `/assistant/` | `assistant` | AI food Q&A chatbot |
-| `/profile/` | `profile` | User profile and TDEE calculator |
-| `/history/` | `meal_history` | Today's food log |
-| `/history/download/` | `download_history_pdf` | Full history PDF |
-| `/history/today-pdf/` | `download_today_pdf` | Today's log PDF |
+| `/assistant/` | `assistant` | Food-only AI chatbot |
+| `/profile/` | `profile` | User profile form and TDEE calculator |
+| `/history/` | `meal_history` | Today's food log with totals (IST) |
+| `/history/download/` | `download_history_pdf` | Full meal history PDF |
+| `/history/today-pdf/` | `download_today_pdf` | Today's formatted PDF |
 | `/manual-food/` | `manual_food_lookup` | Manual food comparison (POST) |
-| `/api/food-suggestions/` | `get_food_suggestions_api` | Autocomplete endpoint |
-| `/api/confirm-food/` | `confirm_food_and_log` | Confirm detected food |
-| `/api/parse-portion/` | `parse_portion_api` | Portion → grams → nutrition |
-| `/accounts/login/` | allauth | Login page |
-| `/accounts/signup/` | allauth | Sign up page |
-| `/admin/` | Django admin | Admin panel |
+| `/reset/` | `reset_analysis` | Clear food session keys (safe logout) |
+| `/api/food-suggestions/` | `get_food_suggestions_api` | Autocomplete from CSV |
+| `/api/confirm-food/` | `confirm_food_and_log` | Confirm low-confidence detection |
+| `/api/parse-portion/` | `parse_portion_api` | Natural language → scaled nutrition |
+| `/assistant/chat/` | `assistant_chat` | Chatbot message endpoint |
+| `/assistant/clear-history/` | `clear_assistant_history` | Reset chatbot session context |
+| `/accounts/login/` | allauth | Login (email or Google) |
+| `/accounts/signup/` | allauth | Sign up |
+| `/admin/` | Django admin | Backend admin panel |
 
 ---
 
-## Nutrition Data Sources
+## 🍽️ Nutrition Data Sources
 
-MacroMate uses a three-tier nutrition lookup system:
+| Priority | Source | Coverage | When Used |
+|---|---|---|---|
+| **1st** | `label_nutrition_mapping.json` | 351 foods · calories, protein, carbs, fat, fiber, sugar | Always — checked first (offline) |
+| **2nd** | Spoonacular API | Any food · full nutrition + portion scaling | Always for CLIP foods; optionally for all when `USE_API_NUTRITION=True` |
+| **3rd** | `data/calories.csv` | 105 foods · calories, protein, carbs, fat | Offline fallback — always available |
 
-**Priority 1 — `nutrition_lookup.json`**
-Rich per-food data including: calories, protein, carbs, fat, fiber, sugar, vitamin A, vitamin C, calcium, and iron. Populated from training data and Spoonacular.
-
-**Priority 2 — Spoonacular API** *(optional, requires `USE_API_NUTRITION = True`)*
-Live lookup for any food by name. Used for portion-scaled nutrition queries (e.g. "2 slices of pizza").
-
-**Priority 3 — `data/calories.csv`**
-Local CSV fallback covering 105 foods including international and Indian dishes. Always available offline.
-
----
-
-## AI Assistant
-
-The MacroMate Assistant (`/assistant/`) is a food-only chatbot with a three-tier answer strategy:
-
-1. **Spoonacular Quick Answer** — for factual nutrition questions ("How many calories in an avocado?")
-2. **Local CSV/API Lookup** — extracts the food name from the question and looks it up directly
-3. **Spoonacular Chatbot** — conversational fallback using Spoonacular's `/food/converse` endpoint
-
-A keyword guardrail prevents non-food questions from being processed. Off-topic queries receive a polite redirect message instead of being passed to the API.
+> **JSON structure note:** Nutrition values are nested under a `"nutrition_data"` key:
+> ```json
+> "pizza": {
+>   "nutrition_data": { "calories": 308.0, "protein": 12.7, "carbohydrates": 36.0, "fat": 12.6 },
+>   "aligned": true
+> }
+> ```
 
 ---
 
-## PDF Export
+## 🤖 AI Assistant
 
-Two PDF export options are available via ReportLab:
+The MacroMate Assistant at `/assistant/` is a **food-only chatbot** protected by a 60+ keyword guardrail. Non-food questions receive a polite redirect — they never reach the API.
 
-- **Full history PDF** — all meals ever logged, with totals at the bottom
-- **Today's log PDF** — styled table with per-meal macros and daily totals, with a branded header bar
+**Three-tier answer strategy:**
+
+1. **Spoonacular Quick Answer** — factual nutrition questions (*"How many calories in 100g of rice?"*)
+2. **Local CSV + Regex Extraction** — extracts food name from question, returns structured calorie/macro data
+3. **Spoonacular Chatbot** — conversational follow-up using `/food/converse` endpoint with session context
+
+Session-based conversation: `spoonacular_context_id` stored in Django session enables follow-up questions. Click **Clear Chat History** to reset.
 
 ---
 
-## Authentication
+## 📄 PDF Export
 
-MacroMate uses **django-allauth** for authentication:
+Two export options via ReportLab:
+
+- **Full history PDF** (`/history/download/`) — all meals ever logged with running totals
+- **Today's log PDF** (`/history/today-pdf/`) — styled table with per-meal macros, daily totals, branded green header bar, generated in IST timezone
+
+---
+
+## 🔐 Authentication
+
+MacroMate uses **django-allauth** for a complete auth system:
 
 - Email + password registration and login
-- Google OAuth sign-in ("Sign in with Google" button)
-- All main pages are protected with `@login_required`
-- Each user's data is fully isolated by `ForeignKey(User, ...)`
+- Google OAuth sign-in with **forced account picker** on every login (via custom `MacroMateSocialAccountAdapter`)
+- All main pages protected with `@login_required`
+- Every user's data fully isolated via `ForeignKey(User, on_delete=CASCADE)`
+- 14-day session persistence (`SESSION_COOKIE_AGE = 60 * 60 * 24 * 14`)
 
 ---
 
-## Database Models
+## 🗄️ Database Models
 
 ### `FoodHistory`
-Stores each saved food item per user.
+Every food item saved by a user after detection or manual lookup.
 
 | Field | Type | Notes |
 |---|---|---|
-| `user` | ForeignKey | Links to Django User |
-| `food` | CharField | Food name |
-| `calories` | IntegerField | kcal |
-| `protein` | FloatField | grams |
-| `carbs` | FloatField | grams |
-| `fat` | FloatField | grams |
-| `image` | CharField | Image URL (optional) |
-| `created_at` | DateTimeField | Auto-set on save |
+| `user` | ForeignKey(User) | Links to the authenticated user |
+| `food` | CharField(100) | Food name (e.g. "Pizza") |
+| `calories` | IntegerField | Total kcal for the saved portion |
+| `protein` | FloatField | Grams (default 0) |
+| `carbs` | FloatField | Grams (default 0) |
+| `fat` | FloatField | Grams (default 0) |
+| `image` | CharField(255) | Uploaded image URL (optional) |
+| `created_at` | DateTimeField | Auto-set; queried in IST timezone |
 
 ### `UserProfile`
-Stores personal nutrition settings and calculated TDEE.
+Personal body metrics and calculated TDEE.
 
 | Field | Type | Notes |
 |---|---|---|
-| `user` | OneToOneField | |
-| `name` | CharField | Display name |
-| `height` | PositiveIntegerField | cm |
-| `weight` | PositiveIntegerField | kg |
-| `age` | PositiveIntegerField | |
-| `gender` | CharField | male / female |
-| `activity_level` | CharField | office / moderate / athlete |
-| `goal` | CharField | loss / maintain / gain |
-| `daily_calorie_goal` | IntegerField | Calculated TDEE |
+| `user` | OneToOneField | One profile per user |
+| `name` | CharField(120) | Display name |
+| `height` | PositiveIntegerField | Centimetres |
+| `weight` | PositiveIntegerField | Kilograms |
+| `age` | PositiveIntegerField | Years |
+| `gender` | CharField | `male` / `female` |
+| `activity_level` | CharField | `office` / `moderate` / `athlete` |
+| `goal` | CharField | `loss` / `maintain` / `gain` |
+| `daily_calorie_goal` | IntegerField | Calculated TDEE — drives all dashboard targets |
 
 ### `Exercise`
-Tracks logged workouts.
+Logged physical activity.
 
 | Field | Type | Notes |
 |---|---|---|
-| `user` | ForeignKey | |
-| `name` | CharField | e.g. Running, Cycling |
-| `calories_burned` | IntegerField | |
-| `duration_minutes` | IntegerField | |
-| `created_at` | DateTimeField | |
+| `user` | ForeignKey(User) | Links to user |
+| `name` | CharField(100) | e.g. "Running", "Cycling" |
+| `calories_burned` | IntegerField | Estimated calories burned |
+| `duration_minutes` | IntegerField | Duration in minutes |
+| `created_at` | DateTimeField | Auto-set timestamp |
 
 ### `MealLog`
-Lightweight alternate log model (calories only).
+Lightweight alternate log model (calories only, for quick tracking).
+
+
 
 ---
 
-## Notes
+## 🔮 Future Enhancements
 
-- Model files (`*.h5`) are excluded from git via `.gitignore` due to file size
-- `settings.py` is gitignored — never commit API keys
-- CLIP downloads the `ViT-B/32` weights on first run (~350 MB); ensure internet access
-- The app gracefully degrades: if the custom model is missing, CLIP is used; if CLIP is missing, the user is always asked to confirm manually
+- [ ] Complete Phase B training and evaluate final `best_model.pt` (targeting 88–93% top-1)
+- [ ] Expand training dataset with more regional Indian, Middle Eastern, and East Asian foods
+- [ ] Real-time food detection via device camera (WebRTC live preview)
+- [ ] Wearable fitness device integration (Fitbit, Apple Health, Google Fit)
+- [ ] Progressive Web App (PWA) with offline support and meal reminder notifications
+- [ ] Personalized meal planning based on TDEE and macro targets
+- [ ] Barcode scanner for packaged food nutrition lookup
+- [ ] Expand AI assistant with a larger LLM for richer conversational coaching
+- [ ] Social features — share meals and compare with friends
 
 ---
 
-## License
+## 📚 References
+
+1. Tan, M., & Le, Q. V. (2021). *EfficientNetV2: Smaller Models and Faster Training.* ICML 2021. [arxiv.org/abs/2104.00298](https://arxiv.org/abs/2104.00298)
+2. Radford, A., et al. (2021). *Learning Transferable Visual Models From Natural Language Supervision.* OpenAI CLIP. [arxiv.org/abs/2103.00020](https://arxiv.org/abs/2103.00020)
+3. Bossard, L., et al. (2014). *Food-101 — Mining Discriminative Components with Random Forests.* ECCV 2014.
+4. Mifflin, M. D., et al. (1990). *A new predictive equation for resting energy expenditure in healthy individuals.* Am J Clin Nutr, 51(2), 241–247.
+5. [Spoonacular Food API Documentation](https://spoonacular.com/food-api/docs)
+6. [Django Documentation (v5.x)](https://docs.djangoproject.com/)
+7. [PyTorch Documentation](https://pytorch.org/docs/stable/index.html)
+8. [OpenAI CLIP GitHub](https://github.com/openai/CLIP)
+
+---
+
+## 📜 License
 
 MIT License — free to use, modify, and distribute.
 
 ---
 
-*Built with ❤️ using Django, TensorFlow, and OpenAI CLIP*
+<div align="center">
+
+Built with ❤️ using **Django**, **PyTorch EfficientNetV2-M**, and **OpenAI CLIP**
+
+*MacroMate — When AI meets healthy living*
+
+</div>
