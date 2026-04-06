@@ -10,7 +10,7 @@
 
 **A full-stack Django web application that uses a custom-trained EfficientNetV2-M deep learning model to detect food from images, analyze nutritional content, and help users intelligently track their daily intake.**
 
-[Features](#-features) · [How It Works](#-how-it-works) · [ML Model](#-ml-model--training) · [Installation](#-installation--setup) · [Routes](#-pages--routes) · [Database](#-database-models)
+[Features](#-features) · [How It Works](#-how-it-works) · [ML Model](#-ml-model--training) ·  [Routes](#-pages--routes) · [Database](#-database-models)
 
 </div>
 
