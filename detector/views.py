@@ -30,6 +30,51 @@ import json as json_module
 from zoneinfo import ZoneInfo
 
 
+def _calculate_macro_targets(daily_goal, profile):
+    """
+    Personalized macro targets (grams/day) using:
+    - protein + fat from grams/kg (activity + goal aware)
+    - carbs from remaining calories
+    Falls back to ratio-based targets if profile weight is missing.
+    """
+    fallback_protein = round(daily_goal * 0.25 / 4)
+    fallback_carbs = round(daily_goal * 0.45 / 4)
+    fallback_fat = round(daily_goal * 0.30 / 9)
+
+    if not profile or not profile.weight:
+        return fallback_protein, fallback_carbs, fallback_fat
+
+    weight_kg = profile.weight
+    goal = profile.goal or "maintain"
+    activity = profile.activity_level or "office"
+
+    protein_g_per_kg = {
+        "loss": {"office": 1.3, "moderate": 1.6, "athlete": 1.9},
+        "maintain": {"office": 0.9, "moderate": 1.2, "athlete": 1.5},
+        "gain": {"office": 1.3, "moderate": 1.6, "athlete": 2.0},
+    }
+    fat_g_per_kg = {
+        "loss": {"office": 0.7, "moderate": 0.8, "athlete": 0.9},
+        "maintain": {"office": 0.8, "moderate": 0.9, "athlete": 1.0},
+        "gain": {"office": 0.9, "moderate": 1.0, "athlete": 1.1},
+    }
+    min_carbs_g_per_kg = {"office": 1.5, "moderate": 2.0, "athlete": 3.0}
+
+    protein_target = round(weight_kg * protein_g_per_kg.get(goal, protein_g_per_kg["maintain"]).get(activity, 0.9))
+    fat_target = round(weight_kg * fat_g_per_kg.get(goal, fat_g_per_kg["maintain"]).get(activity, 0.8))
+
+    protein_calories = protein_target * 4
+    fat_calories = fat_target * 9
+    remaining_for_carbs = max(0, daily_goal - protein_calories - fat_calories)
+    carbs_target = round(remaining_for_carbs / 4)
+
+    min_carbs_target = round(weight_kg * min_carbs_g_per_kg.get(activity, 1.5))
+    if carbs_target < min_carbs_target:
+        carbs_target = min_carbs_target
+
+    return max(0, protein_target), max(0, carbs_target), max(0, fat_target)
+
+
 @login_required
 def dashboard(request):
     """
@@ -73,11 +118,8 @@ def dashboard(request):
     week_avg_calories = week_foods.aggregate(avg=Avg('calories'))['avg'] or 0
     week_avg_calories = round(week_avg_calories * week_foods.count() / 7) if week_foods.count() > 0 else 0
     
-    # Calculate macro percentages (rough estimates based on calorie goals)
-    # Protein: ~25% of calories = ~4 cal/g, Carbs: ~45% = ~4 cal/g, Fat: ~30% = ~9 cal/g
-    protein_target = round(daily_goal * 0.25 / 4)
-    carbs_target = round(daily_goal * 0.45 / 4)
-    fat_target = round(daily_goal * 0.30 / 9)
+    # Personalized macro targets from profile inputs (with fallback if profile is incomplete)
+    protein_target, carbs_target, fat_target = _calculate_macro_targets(daily_goal, profile)
     
     protein_percent = min(100, round((today_protein / protein_target * 100))) if protein_target > 0 else 0
     carbs_percent = min(100, round((today_carbs / carbs_target * 100))) if carbs_target > 0 else 0
