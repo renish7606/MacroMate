@@ -1260,6 +1260,7 @@ def parse_portion_api(request):
         data = json.loads(request.body)
         food = data.get("food")
         portion_text = data.get("portion_text")
+        base_nutrition = data.get("base_nutrition")
 
         if not food or not portion_text:
             return JsonResponse({"error": "Missing data"}, status=400)
@@ -1268,28 +1269,49 @@ def parse_portion_api(request):
         grams = parse_quantity(portion_text, food)
         print(f"📊 Parsed portion: '{portion_text}' = {grams}g of {food}")
 
-        # 2️⃣ Try API nutrition first
-        nutrition = get_nutrition_from_api(food, grams=grams)
+        # 2️⃣ If frontend sends current card nutrition (per 100g), prefer it.
+        # This keeps portion math aligned with the values users see on screen.
+        nutrition = None
+        if isinstance(base_nutrition, dict):
+            try:
+                base_calories = float(base_nutrition.get("calories", 0) or 0)
+                base_protein = float(base_nutrition.get("protein", 0) or 0)
+                base_carbs = float(base_nutrition.get("carbs", 0) or 0)
+                base_fat = float(base_nutrition.get("fat", 0) or 0)
+                if base_calories > 0:
+                    scale_factor = grams / 100.0
+                    nutrition = {
+                        "calories": int(round(base_calories * scale_factor)),
+                        "protein": round(base_protein * scale_factor, 1),
+                        "carbs": round(base_carbs * scale_factor, 1),
+                        "fat": round(base_fat * scale_factor, 1),
+                    }
+            except (TypeError, ValueError):
+                nutrition = None
 
-        # 3️⃣ Fallback to CSV
+        # 3️⃣ Try API nutrition if no usable base nutrition was supplied
+        if not nutrition:
+            nutrition = get_nutrition_from_api(food, grams=grams)
+
+        # 4️⃣ Fallback to CSV
         if not nutrition:
             print(f"⚠️ API failed, using CSV for {food}")
-            base_nutrition = get_nutrition_from_csv(food)
-            
-            if base_nutrition:
+            csv_base_nutrition = get_nutrition_from_csv(food)
+
+            if csv_base_nutrition:
                 # Scale from 100g to actual grams
                 scale_factor = grams / 100.0
                 nutrition = {
-                    "calories": int(base_nutrition["calories"] * scale_factor),
-                    "protein": round(base_nutrition["protein"] * scale_factor, 1),
-                    "carbs": round(base_nutrition["carbs"] * scale_factor, 1),
-                    "fat": round(base_nutrition["fat"] * scale_factor, 1),
+                    "calories": int(csv_base_nutrition["calories"] * scale_factor),
+                    "protein": round(csv_base_nutrition["protein"] * scale_factor, 1),
+                    "carbs": round(csv_base_nutrition["carbs"] * scale_factor, 1),
+                    "fat": round(csv_base_nutrition["fat"] * scale_factor, 1),
                 }
 
         if not nutrition:
             return JsonResponse({"error": "Nutrition not found"}, status=404)
 
-        # 4️⃣ Return calculated nutrition
+        # 5️⃣ Return calculated nutrition
         result = {
             "grams": grams,
             "calories": nutrition["calories"],

@@ -153,56 +153,141 @@
 
 {% block extra_js %}
 <script>
-    const CSRF = '{{ csrf_token }}';
+  const CSRF = '{{ csrf_token }}';
+  const multiFoods = [
+    {% for item in foods %}
+    {
+      name: "{{ item.name|escapejs }}",
+      image: "{{ item.image|default:''|escapejs }}",
+      baseNutrition: {
+        calories: Number('{{ item.calories|default:0 }}') || 0,
+        protein: Number('{{ item.protein|default:0 }}') || 0,
+        carbs: Number('{{ item.carbs|default:0 }}') || 0,
+        fat: Number('{{ item.fat|default:0 }}') || 0,
+      },
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+  let latestCalculated = null;
 
-    /* ── SAVE SINGLE FOOD ── */
-    async function saveSingleMeal(food, calories, protein, carbs, fat, image) {
-        const form = new URLSearchParams({ food, calories, protein, carbs, fat, image });
-        const res = await fetch("{% url 'save_to_history' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': CSRF },
-            body: form,
-        });
-        const data = await res.json();
-        if (data.success) {
-            alert(`✅ ${food} saved to history!`);
-        } else {
-            alert(`❌ ${data.error}`);
-        }
+  /* ── SAVE SINGLE FOOD ── */
+  async function saveSingleMeal(food, calories, protein, carbs, fat, image) {
+    const form = new URLSearchParams({ food, calories, protein, carbs, fat, image });
+    const res = await fetch("{% url 'save_to_history' %}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': CSRF },
+      body: form,
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(`✅ ${food} saved to history!`);
+    } else {
+      alert(`❌ ${data.error}`);
+    }
+  }
+
+  function normalizeFoodText(v) {
+    return String(v || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function resolveTargetFood(userText) {
+    const normalizedText = normalizeFoodText(userText);
+    let best = null;
+    let bestScore = 0;
+
+    for (const food of multiFoods) {
+      const foodName = normalizeFoodText(food.name);
+      const parts = foodName.split(' ').filter(Boolean);
+      let score = 0;
+      if (foodName && normalizedText.includes(foodName)) score += 10;
+      for (const p of parts) {
+        if (p.length >= 3 && normalizedText.includes(p)) score += 1;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        best = food;
+      }
+    }
+    return best || multiFoods[0];
+  }
+
+  async function saveCalculatedFromAssistant() {
+    if (!latestCalculated) {
+      alert("Calculate a portion first.");
+      return;
     }
 
-    /* ── PORTION CHAT ── */
-    async function sendPortion() {
-        const input = document.getElementById('portionInput');
-        const text = input.value.trim();
-        if (!text) return;
+    const form = new URLSearchParams({
+      food: latestCalculated.food,
+      calories: String(latestCalculated.calories),
+      protein: String(latestCalculated.protein),
+      carbs: String(latestCalculated.carbs),
+      fat: String(latestCalculated.fat),
+      image: latestCalculated.image || '',
+    });
+    const res = await fetch("{% url 'save_to_history' %}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': CSRF },
+      body: form,
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(`✅ Saved ${latestCalculated.food} (${latestCalculated.grams}g) to history.`);
+    } else {
+      alert(`❌ ${data.error || 'Failed to save.'}`);
+    }
+  }
 
-        const chat = document.getElementById('chat-messages');
-        chat.innerHTML += `
-    <div class="mm-bubble mm-bubble--user">${text}</div>`;
-        input.value = '';
-        chat.scrollTop = chat.scrollHeight;
+  /* ── PORTION CHAT ── */
+  async function sendPortion() {
+    const input = document.getElementById('portionInput');
+    const text = input.value.trim();
+    if (!text) return;
 
-        // Try portion parsing for the first food
-        const firstFood = '{{ foods.0.name }}';
-        const res = await fetch('/api/parse-portion/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-            body: JSON.stringify({ food: firstFood, portion_text: text }),
-        });
-        const data = await res.json();
+    const chat = document.getElementById('chat-messages');
+    chat.innerHTML += `<div class="mm-bubble mm-bubble--user">${text}</div>`;
+    input.value = '';
+    chat.scrollTop = chat.scrollHeight;
 
-        if (data.error) {
-            chat.innerHTML += `<div class="mm-bubble mm-bubble--warn">⚠️ ${data.error}</div>`;
-        } else {
-            chat.innerHTML += `
+    const targetFood = resolveTargetFood(text);
+    const res = await fetch('/api/parse-portion/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({
+        food: targetFood.name,
+        portion_text: text,
+        base_nutrition: targetFood.baseNutrition,
+      }),
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      chat.innerHTML += `<div class="mm-bubble mm-bubble--warn">⚠️ ${data.error}</div>`;
+    } else {
+      latestCalculated = {
+        food: targetFood.name,
+        image: targetFood.image,
+        grams: data.grams,
+        calories: data.calories,
+        protein: data.protein,
+        carbs: data.carbs,
+        fat: data.fat,
+      };
+      chat.innerHTML += `
       <div class="mm-bubble mm-bubble--bot">
-        🍽 <b>Calculated for ${firstFood}:</b><br>
+        🍽 <b>Calculated for ${targetFood.name}:</b><br>
         Calories: ${data.calories} kcal<br>
-        Protein: ${data.protein}g · Carbs: ${data.carbs}g · Fat: ${data.fat}g
+        Protein: ${data.protein}g · Carbs: ${data.carbs}g · Fat: ${data.fat}g<br>
+        <button class="mm-btn mm-btn--primary" style="margin-top:10px;" onclick="saveCalculatedFromAssistant()">
+          Save this portion to history
+        </button>
       </div>`;
-        }
-        chat.scrollTop = chat.scrollHeight;
     }
+    chat.scrollTop = chat.scrollHeight;
+  }
 </script>
 {% endblock %}

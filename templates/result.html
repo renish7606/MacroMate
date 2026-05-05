@@ -308,7 +308,13 @@
       },
       body: JSON.stringify({
         food: "{{ food }}",
-        portion_text: text
+        portion_text: text,
+        base_nutrition: {
+          calories: Number("{{ calories|default:0 }}") || 0,
+          protein: Number("{{ protein|default:0 }}") || 0,
+          carbs: Number("{{ carbs|default:0 }}") || 0,
+          fat: Number("{{ fat|default:0 }}") || 0
+        }
       })
     })
       .then(res => res.json())
